@@ -53,8 +53,15 @@ def fetch_binary_defense():
 
 def fetch_abuseipdb():
     logger.info("Fetching AbuseIPDB blocklist")
-    api_key = ""
+    api_key = os.getenv('ABUSEIPDB_API_KEY')
     
+    if not api_key:
+        try:
+            with open('/config/scripts/abuseipdb.key', 'r') as f:
+                api_key = f.read().strip()
+        except FileNotFoundError:
+            pass
+        
     if not api_key:
         logger.warning("ABUSEIPDB_API_KEY not set, skipping AbuseIPDB")
         return []

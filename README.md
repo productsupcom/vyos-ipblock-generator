@@ -43,8 +43,8 @@ Get a free API key from [AbuseIPDB](https://www.abuseipdb.com/api) and set it:
 ```bash
 # Method 1: Environment file (recommended)
 sudo mkdir -p /config/scripts
-echo "ABUSEIPDB_API_KEY=your-api-key-here" | sudo tee /config/scripts/blocklist.env
-sudo chmod 600 /config/scripts/blocklist.env
+echo "ABUSEIPDB_API_KEY=your-api-key-here" | sudo tee /config/scripts/abuseipdb.key
+sudo chmod 600 /config/scripts/abuseipdb.key
 
 # Method 2: Add to profile
 echo 'export ABUSEIPDB_API_KEY="your-api-key-here"' >> ~/.bashrc
