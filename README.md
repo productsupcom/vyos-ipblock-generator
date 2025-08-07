@@ -95,7 +95,7 @@ python3 /config/scripts/generate_blocklist.py --dry-run --verbose
 ### With Environment File
 
 ```bash
-source /config/scripts/blocklist.env
+source /config/scripts/abuseipdb.key
 python3 /config/scripts/generate_blocklist.py
 ```
 
@@ -116,7 +116,7 @@ Create the wrapper script:
 sudo tee /config/scripts/update_blocklist.sh << 'EOF'
 #!/bin/bash
 cd /config/scripts
-source blocklist.env 2>/dev/null || true
+source /config/scripts/abuseipdb.key 2>/dev/null || true
 python3 generate_blocklist.py >> /var/log/blocklist_cron.log 2>&1
 EOF
 sudo chmod +x /config/scripts/update_blocklist.sh
