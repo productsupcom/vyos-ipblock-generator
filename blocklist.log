@@ -74,3 +74,32 @@
 2025-08-07 11:33:28,360 - INFO - DRY RUN: Blocklist generation completed successfully
 2025-08-07 11:33:28,360 - INFO - DRY RUN: Would have applied 12032 entries to nftables
 2025-08-07 11:33:28,360 - INFO - === Blocklist generation completed successfully ===
+2025-08-07 12:28:49,643 - __main__ - INFO - === DRY RUN MODE - No changes will be made ===
+2025-08-07 12:28:49,643 - __main__ - INFO - === Starting VyOS IP Blocklist Generation ===
+2025-08-07 12:28:49,643 - __main__ - INFO - Starting blocklist generation
+2025-08-07 12:28:49,643 - __main__ - INFO - Fetching Emerging Threats blocklist
+2025-08-07 12:28:49,643 - __main__ - INFO - Fetching URL: http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt
+2025-08-07 12:28:49,976 - __main__ - INFO - Successfully fetched http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt, response size: 27526 bytes, elapsed: 0.33s
+2025-08-07 12:28:49,986 - __main__ - INFO - Emerging Threats: 1619 valid entries found
+2025-08-07 12:28:49,986 - __main__ - INFO - Fetching Binary Defense blocklist
+2025-08-07 12:28:49,986 - __main__ - INFO - Fetching URL: https://www.binarydefense.com/banlist.txt
+2025-08-07 12:28:50,463 - __main__ - INFO - Successfully fetched https://www.binarydefense.com/banlist.txt, response size: 45429 bytes, elapsed: 0.48s
+2025-08-07 12:28:50,475 - __main__ - INFO - Binary Defense: 3128 valid entries found
+2025-08-07 12:28:50,475 - __main__ - INFO - Fetching AbuseIPDB blocklist
+2025-08-07 12:28:50,475 - __main__ - WARNING - ABUSEIPDB_API_KEY not available, skipping AbuseIPDB
+2025-08-07 12:28:50,475 - __main__ - INFO - Total raw entries collected: 4747
+2025-08-07 12:28:50,475 - __main__ - INFO - Converting 4747 entries to CIDR format
+2025-08-07 12:28:50,488 - __main__ - INFO - Successfully converted 4747 entries to CIDR
+2025-08-07 12:28:50,488 - __main__ - INFO - Deduplicating and filtering 4747 CIDR entries
+2025-08-07 12:28:54,405 - __main__ - INFO - Removed 861 redundant entries, 3886 unique entries remaining
+2025-08-07 12:28:54,405 - __main__ - INFO - Final blocklist contains 3886 entries
+2025-08-07 12:28:54,405 - __main__ - INFO - Creating nftables rule file with 3886 entries
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: Would create nftables rule file
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: File would contain 3886 CIDR entries
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: Sample entries: ['1.10.16.0/20', '1.19.0.0/16', '1.20.146.5/32', '1.32.128.0/18', '1.53.48.186/32']
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: Would apply nftables rule file: /tmp/dry-run-blocklist.nft
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: Would flush existing set and apply new rules
+2025-08-07 12:28:54,405 - __main__ - ERROR - Error reading rule file for dry run: [Errno 2] No such file or directory: '/tmp/dry-run-blocklist.nft'
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: Blocklist generation completed successfully
+2025-08-07 12:28:54,405 - __main__ - INFO - DRY RUN: Would have applied 3886 entries to nftables
+2025-08-07 12:28:54,406 - __main__ - INFO - === Blocklist generation completed successfully ===
