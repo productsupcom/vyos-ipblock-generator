@@ -201,13 +201,17 @@ class BlocklistGenerator:
         if api_key:
             return api_key.strip()
         
-        # Try key file
+        # Try key file - read only the first line to avoid issues with extra content
         try:
-            return self.config.ABUSEIPDB_KEY_PATH.read_text().strip()
+            with open(self.config.ABUSEIPDB_KEY_PATH, 'r') as f:
+                first_line = f.readline().strip()
+                if first_line:
+                    return first_line
+                return None
         except (FileNotFoundError, PermissionError, OSError) as e:
             self.logger.debug(f"Could not read API key file: {e}")
             return None
-    
+
     def _filter_lines(self, data: str) -> List[str]:
         """
         Filter and validate IP addresses and CIDR blocks from text data.

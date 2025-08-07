@@ -28,7 +28,7 @@ A Python script that automatically fetches and applies IP blocklists from multip
 1. Clone or download the script to your VyOS router:
 ```bash
 sudo mkdir -p /config/scripts
-sudo wget -O /config/scripts/generate_blocklist.py https://raw.githubusercontent.com/productsupcom/vyos-ipblock/main/generate_blocklist.py
+sudo wget -O /config/scripts/generate_blocklist.py https://raw.githubusercontent.com/productsupcom/vyos-ipblock-generator/main/generate_blocklist.py
 sudo chmod +x /config/scripts/generate_blocklist.py
 ```
 
@@ -46,7 +46,7 @@ Get a free API key from [AbuseIPDB](https://www.abuseipdb.com/api) and set it:
 ```bash
 # Method 1: Environment file (recommended)
 sudo mkdir -p /config/scripts
-echo "ABUSEIPDB_API_KEY=your-api-key-here" | sudo tee /config/scripts/abuseipdb.key
+echo "your-api-key-here" | sudo tee /config/scripts/abuseipdb.key
 sudo chmod 600 /config/scripts/abuseipdb.key
 
 # Method 2: Add to profile
