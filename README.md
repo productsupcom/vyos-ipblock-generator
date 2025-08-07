@@ -2,6 +2,8 @@
 
 A Python script that automatically fetches and applies IP blocklists from multiple threat intelligence sources to VyOS firewall using nftables.
 
+[![Test VyOS Blocklist Generator](https://github.com/productsupcom/vyos-ipblock-generator/actions/workflows/generator_tests.yml/badge.svg)](https://github.com/productsupcom/vyos-ipblock-generator/actions/workflows/generator_tests.yml)
+
 ## Features
 
 - **Multiple Sources**: Fetches blocklists from:
