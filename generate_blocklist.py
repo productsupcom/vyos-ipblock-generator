@@ -262,15 +262,15 @@ class BlocklistGenerator:
             List of IPv4Network objects
         """
         self.logger.info(f"Converting {len(ip_list)} entries to CIDR format")
-        cidr_list = []
+        cidr_list: List[ipaddress.IPv4Network] = []
         conversion_errors = 0
         
         for ip in ip_list:
             try:
                 if '/' in ip:
-                    network = ipaddress.ip_network(ip, strict=False)
+                    network = ipaddress.IPv4Network(ip, strict=False)
                 else:
-                    network = ipaddress.ip_network(f"{ip}/32", strict=False)
+                    network = ipaddress.IPv4Network(f"{ip}/32", strict=False)
                 cidr_list.append(network)
             except ValueError:
                 conversion_errors += 1
@@ -299,7 +299,7 @@ class BlocklistGenerator:
         cidr_list.sort(key=lambda x: (x.network_address, x.prefixlen))
         
         # Remove networks contained within larger blocks
-        filtered_list = []
+        filtered_list: List[ipaddress.IPv4Network] = []
         for cidr in cidr_list:
             if not any(cidr.subnet_of(existing) for existing in filtered_list):
                 filtered_list.append(cidr)
