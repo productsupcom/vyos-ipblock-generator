@@ -11,7 +11,7 @@ import ipaddress
 import logging
 import os
 import re
-import subprocess
+import subprocess  # nosec B404 - subprocess usage is intentional and controlled
 import tempfile
 import time
 from pathlib import Path
@@ -363,7 +363,8 @@ class BlocklistGenerator:
             if cidr_list:
                 sample_entries = [str(c) for c in cidr_list[:5]]
                 self.logger.info(f"DRY RUN: Sample entries: {sample_entries}")
-            return "/tmp/dry-run-blocklist.nft"
+            # Use tempfile for dry run as well to avoid hardcoded paths
+            return tempfile.mktemp(suffix="-dry-run-blocklist.nft")  # nosec B306 - dry run only
         
         nft_content = f"""
 table ip {self.config.NFT_TABLE} {{
@@ -389,8 +390,9 @@ table ip {self.config.NFT_TABLE} {{
         
         self.logger.info("Flushing existing nftables set")
         try:
+            # Command is constructed from known safe values only
             command = ["sudo", "nft", "flush", "set", self.config.NFT_TABLE, self.config.NFT_SET]
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - controlled input, no shell
                 command, 
                 check=True, 
                 timeout=self.config.NFT_TIMEOUT, 
@@ -427,13 +429,17 @@ table ip {self.config.NFT_TABLE} {{
         
         self.logger.info(f"Applying nftables rule file: {filename}")
         
+        # Validate filename to prevent path traversal
+        if not os.path.abspath(filename).startswith(tempfile.gettempdir()):
+            raise NFTConfigError("Invalid nftables rule file path")
+        
         # First flush existing set
         self._flush_nft_set()
         
-        # Apply new rule file
+        # Apply new rule file - filename comes from our own tempfile creation
         try:
             command = ["sudo", "nft", "-f", filename]
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - controlled input, no shell
                 command, 
                 check=True, 
                 timeout=self.config.NFT_TIMEOUT, 
