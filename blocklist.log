@@ -1,0 +1,76 @@
+2025-08-07 10:29:06,593 - INFO - === Starting VyOS IP Blocklist Generation ===
+2025-08-07 10:29:06,593 - INFO - Starting blocklist generation
+2025-08-07 10:29:06,593 - INFO - Fetching Emerging Threats blocklist
+2025-08-07 10:29:06,593 - INFO - Fetching URL: http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt
+2025-08-07 10:29:06,803 - INFO - Successfully fetched http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt, response size: 27526 bytes
+2025-08-07 10:29:06,809 - INFO - Emerging Threats: 1619 valid entries found
+2025-08-07 10:29:06,810 - INFO - Fetching Binary Defense blocklist
+2025-08-07 10:29:06,810 - INFO - Fetching URL: https://www.binarydefense.com/banlist.txt
+2025-08-07 10:29:07,186 - INFO - Successfully fetched https://www.binarydefense.com/banlist.txt, response size: 45429 bytes
+2025-08-07 10:29:07,193 - INFO - Binary Defense: 3128 valid entries found
+2025-08-07 10:29:07,193 - INFO - Fetching AbuseIPDB blocklist
+2025-08-07 10:29:07,193 - INFO - Fetching URL: https://api.abuseipdb.com/api/v2/blacklist
+2025-08-07 10:29:07,893 - INFO - Successfully fetched https://api.abuseipdb.com/api/v2/blacklist, response size: 142461 bytes
+2025-08-07 10:29:07,916 - INFO - AbuseIPDB: 9978 valid entries found
+2025-08-07 10:29:07,917 - INFO - Total raw entries collected: 14725
+2025-08-07 10:29:07,917 - INFO - Converting 14725 entries to CIDR format
+2025-08-07 10:29:07,975 - INFO - Successfully converted 14725 entries to CIDR
+2025-08-07 10:29:07,975 - INFO - Deduplicating and filtering 14725 CIDR entries
+2025-08-07 10:29:51,914 - INFO - Removed 2734 redundant entries, 11991 unique entries remaining
+2025-08-07 10:29:51,914 - INFO - Final blocklist contains 11991 entries
+2025-08-07 10:29:51,918 - INFO - Creating nftables rule file with 11991 entries
+2025-08-07 10:29:51,931 - INFO - Created temporary nftables file: /tmp/tmpge9t1a6e.nft
+2025-08-07 10:29:51,931 - INFO - Applying nftables rule file: /tmp/tmpge9t1a6e.nft
+2025-08-07 10:29:51,931 - INFO - Flushing existing nftables set
+2025-08-07 10:30:01,943 - ERROR - Timeout while flushing nftables set
+2025-08-07 10:30:01,943 - INFO - Cleaned up temporary file: /tmp/tmpge9t1a6e.nft
+2025-08-07 10:30:01,944 - ERROR - Fatal error: Command '['sudo', 'nft', 'flush', 'set', 'vyos_filter', 'N_threats-blocklist']' timed out after 10 seconds
+2025-08-07 11:32:34,496 - INFO - === Starting VyOS IP Blocklist Generation ===
+2025-08-07 11:32:34,496 - INFO - Starting blocklist generation
+2025-08-07 11:32:34,496 - INFO - Fetching Emerging Threats blocklist
+2025-08-07 11:32:34,497 - INFO - Fetching URL: http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt
+2025-08-07 11:32:34,876 - INFO - Successfully fetched http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt, response size: 27526 bytes
+2025-08-07 11:32:34,882 - INFO - Emerging Threats: 1619 valid entries found
+2025-08-07 11:32:34,882 - INFO - Fetching Binary Defense blocklist
+2025-08-07 11:32:34,882 - INFO - Fetching URL: https://www.binarydefense.com/banlist.txt
+2025-08-07 11:32:35,115 - INFO - Successfully fetched https://www.binarydefense.com/banlist.txt, response size: 45429 bytes
+2025-08-07 11:32:35,121 - INFO - Binary Defense: 3128 valid entries found
+2025-08-07 11:32:35,121 - INFO - Fetching AbuseIPDB blocklist
+2025-08-07 11:32:35,121 - INFO - Fetching URL: https://api.abuseipdb.com/api/v2/blacklist
+2025-08-07 11:32:35,595 - INFO - Successfully fetched https://api.abuseipdb.com/api/v2/blacklist, response size: 142849 bytes
+2025-08-07 11:32:35,617 - INFO - AbuseIPDB: 9954 valid entries found
+2025-08-07 11:32:35,617 - INFO - Total raw entries collected: 14701
+2025-08-07 11:32:35,617 - INFO - Converting 14701 entries to CIDR format
+2025-08-07 11:32:35,677 - INFO - Successfully converted 14701 entries to CIDR
+2025-08-07 11:32:35,677 - INFO - Deduplicating and filtering 14701 CIDR entries
+2025-08-07 11:32:45,618 - INFO - === DRY RUN MODE - No changes will be made ===
+2025-08-07 11:32:45,618 - INFO - === Starting VyOS IP Blocklist Generation ===
+2025-08-07 11:32:45,618 - INFO - Starting blocklist generation
+2025-08-07 11:32:45,618 - INFO - Fetching Emerging Threats blocklist
+2025-08-07 11:32:45,618 - INFO - Fetching URL: http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt
+2025-08-07 11:32:45,895 - INFO - Successfully fetched http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt, response size: 27526 bytes
+2025-08-07 11:32:45,901 - INFO - Emerging Threats: 1619 valid entries found
+2025-08-07 11:32:45,901 - INFO - Fetching Binary Defense blocklist
+2025-08-07 11:32:45,901 - INFO - Fetching URL: https://www.binarydefense.com/banlist.txt
+2025-08-07 11:32:46,116 - INFO - Successfully fetched https://www.binarydefense.com/banlist.txt, response size: 45429 bytes
+2025-08-07 11:32:46,122 - INFO - Binary Defense: 3128 valid entries found
+2025-08-07 11:32:46,122 - INFO - Fetching AbuseIPDB blocklist
+2025-08-07 11:32:46,122 - INFO - Fetching URL: https://api.abuseipdb.com/api/v2/blacklist
+2025-08-07 11:32:46,542 - INFO - Successfully fetched https://api.abuseipdb.com/api/v2/blacklist, response size: 142849 bytes
+2025-08-07 11:32:46,560 - INFO - AbuseIPDB: 9954 valid entries found
+2025-08-07 11:32:46,561 - INFO - Total raw entries collected: 14701
+2025-08-07 11:32:46,561 - INFO - Converting 14701 entries to CIDR format
+2025-08-07 11:32:46,613 - INFO - Successfully converted 14701 entries to CIDR
+2025-08-07 11:32:46,613 - INFO - Deduplicating and filtering 14701 CIDR entries
+2025-08-07 11:33:28,358 - INFO - Removed 2669 redundant entries, 12032 unique entries remaining
+2025-08-07 11:33:28,358 - INFO - Final blocklist contains 12032 entries
+2025-08-07 11:33:28,360 - INFO - Creating nftables rule file with 12032 entries
+2025-08-07 11:33:28,360 - INFO - DRY RUN: Would create nftables rule file
+2025-08-07 11:33:28,360 - INFO - DRY RUN: File would contain 12032 CIDR entries
+2025-08-07 11:33:28,360 - INFO - DRY RUN: Sample entries: ['1.0.224.215/32', '1.1.207.32/32', '1.2.146.211/32', '1.2.164.151/32', '1.2.164.163/32']
+2025-08-07 11:33:28,360 - INFO - DRY RUN: Would apply nftables rule file: /tmp/dry-run-blocklist.nft
+2025-08-07 11:33:28,360 - INFO - DRY RUN: Would flush existing set and apply new rules
+2025-08-07 11:33:28,360 - ERROR - Error reading rule file for dry run: [Errno 2] No such file or directory: '/tmp/dry-run-blocklist.nft'
+2025-08-07 11:33:28,360 - INFO - DRY RUN: Blocklist generation completed successfully
+2025-08-07 11:33:28,360 - INFO - DRY RUN: Would have applied 12032 entries to nftables
+2025-08-07 11:33:28,360 - INFO - === Blocklist generation completed successfully ===
