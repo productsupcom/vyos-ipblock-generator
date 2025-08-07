@@ -29,6 +29,7 @@ class BlocklistConfig:
     
     # File paths
     ABUSEIPDB_KEY_PATH = Path('/config/scripts/abuseipdb.key')
+    WHITELIST_PATH = Path('/config/scripts/whitelist.txt')
     LOG_FILE = 'blocklist.log'
     
     # Timeouts and limits
@@ -61,18 +62,20 @@ class NFTConfigError(BlocklistGeneratorError):
 class BlocklistGenerator:
     """Main class for generating and applying IP blocklists."""
     
-    def __init__(self, dry_run: bool = False, verbose: bool = False):
+    def __init__(self, dry_run: bool = False, verbose: bool = False, whitelist_file: Optional[str] = None):
         """
         Initialize the blocklist generator.
         
         Args:
             dry_run: If True, only show what would be done without making changes
             verbose: If True, enable debug logging
+            whitelist_file: Optional path to custom whitelist file
         """
         self.dry_run = dry_run
         self.config = BlocklistConfig()
         self._setup_logging(verbose)
         self.session = self._create_session()
+        self.whitelist_networks = self._load_whitelist(whitelist_file)
         
     def _setup_logging(self, verbose: bool) -> None:
         """Configure logging with appropriate level and handlers."""
@@ -308,6 +311,98 @@ class BlocklistGenerator:
         self.logger.info(f"Removed {removed_count} redundant entries, {len(filtered_list)} unique entries remaining")
         return filtered_list
     
+    def _load_whitelist(self, whitelist_file: Optional[str] = None) -> List[ipaddress.IPv4Network]:
+        """
+        Load whitelist from configuration file.
+        
+        Args:
+            whitelist_file: Optional path to custom whitelist file
+            
+        Returns:
+            List of IPv4Network objects representing whitelisted networks
+        """
+        whitelist_path = Path(whitelist_file) if whitelist_file else self.config.WHITELIST_PATH
+        
+        if not whitelist_path.exists():
+            self.logger.info(f"No whitelist file found at {whitelist_path}")
+            return []
+        
+        try:
+            self.logger.info(f"Loading whitelist from {whitelist_path}")
+            content = whitelist_path.read_text().strip()
+            
+            if not content:
+                self.logger.info("Whitelist file is empty")
+                return []
+            
+            whitelist_entries = self._filter_lines(content)
+            whitelist_networks = self._convert_to_cidr(whitelist_entries)
+            
+            self.logger.info(f"Loaded {len(whitelist_networks)} whitelisted networks")
+            for network in whitelist_networks:
+                self.logger.debug(f"Whitelisted: {network}")
+            
+            return whitelist_networks
+            
+        except (OSError, PermissionError) as e:
+            self.logger.warning(f"Could not read whitelist file {whitelist_path}: {e}")
+            return []
+        except Exception as e:
+            self.logger.error(f"Error processing whitelist file {whitelist_path}: {e}")
+            return []
+    
+    def _is_whitelisted(self, network: ipaddress.IPv4Network) -> bool:
+        """
+        Check if a network is whitelisted.
+        
+        Args:
+            network: IPv4Network to check
+            
+        Returns:
+            True if the network overlaps with any whitelisted network
+        """
+        for whitelist_net in self.whitelist_networks:
+            # Check if the network is contained within or overlaps with whitelist
+            if (network.subnet_of(whitelist_net) or 
+                network.supernet_of(whitelist_net) or 
+                network.overlaps(whitelist_net)):
+                return True
+        return False
+    
+    def _apply_whitelist_filter(self, cidr_list: List[ipaddress.IPv4Network]) -> List[ipaddress.IPv4Network]:
+        """
+        Filter out whitelisted networks from the blocklist.
+        
+        Args:
+            cidr_list: List of IPv4Network objects to filter
+            
+        Returns:
+            Filtered list with whitelisted networks removed
+        """
+        if not self.whitelist_networks:
+            self.logger.debug("No whitelist configured, skipping whitelist filtering")
+            return cidr_list
+        
+        self.logger.info(f"Applying whitelist filter to {len(cidr_list)} entries")
+        original_count = len(cidr_list)
+        
+        filtered_list = []
+        whitelisted_count = 0
+        
+        for network in cidr_list:
+            if self._is_whitelisted(network):
+                whitelisted_count += 1
+                self.logger.debug(f"Filtered out whitelisted network: {network}")
+            else:
+                filtered_list.append(network)
+        
+        self.logger.info(
+            f"Whitelist filtering: removed {whitelisted_count} entries, "
+            f"{len(filtered_list)} entries remaining"
+        )
+        
+        return filtered_list
+    
     def generate_blocklist(self) -> List[ipaddress.IPv4Network]:
         """
         Generate the complete blocklist from all sources.
@@ -340,7 +435,8 @@ class BlocklistGenerator:
         
         # Convert to CIDR and filter
         cidr_list = self._convert_to_cidr(blocklist)
-        filtered_list = self._deduplicate_and_filter_list(cidr_list)
+        deduplicated_list = self._deduplicate_and_filter_list(cidr_list)
+        filtered_list = self._apply_whitelist_filter(deduplicated_list)
         
         self.logger.info(f"Final blocklist contains {len(filtered_list)} entries")
         return filtered_list
@@ -495,9 +591,10 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                    # Generate and apply blocklist
-  %(prog)s --dry-run          # Show what would be done
-  %(prog)s --verbose          # Enable debug logging
+  %(prog)s                          # Generate and apply blocklist
+  %(prog)s --dry-run                # Show what would be done
+  %(prog)s --verbose                # Enable debug logging
+  %(prog)s --whitelist /path/to/whitelist.txt  # Use custom whitelist file
         """
     )
     parser.add_argument(
@@ -510,11 +607,20 @@ Examples:
         action='store_true',
         help='Enable verbose (debug) logging'
     )
+    parser.add_argument(
+        '--whitelist', 
+        type=str,
+        help='Path to whitelist file (default: /config/scripts/whitelist.txt)'
+    )
     
     args = parser.parse_args()
     
     try:
-        generator = BlocklistGenerator(dry_run=args.dry_run, verbose=args.verbose)
+        generator = BlocklistGenerator(
+            dry_run=args.dry_run, 
+            verbose=args.verbose,
+            whitelist_file=args.whitelist
+        )
         generator.run()
         return 0
     except KeyboardInterrupt:

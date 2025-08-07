@@ -15,6 +15,7 @@ A Python script that automatically fetches and applies IP blocklists from multip
 - **Dry Run Mode**: Test the script without making changes
 - **Comprehensive Logging**: Detailed logs with file and console output
 - **Error Handling**: Robust error handling with timeouts and retries
+- **Whitelist Support**: Protect your own networks from being blocked
 
 ## Requirements
 
@@ -76,6 +77,25 @@ save
 exit
 ```
 
+### 3. Whitelist Configuration
+
+Create a whitelist file to protect your own networks from being blocked:
+
+```bash
+# Copy the example whitelist
+cp whitelist.txt.example /config/scripts/whitelist.txt
+
+# Edit to include your networks
+sudo nano /config/scripts/whitelist.txt
+```
+
+The whitelist supports:
+- Individual IP addresses: `192.168.1.1`
+- CIDR blocks: `10.0.0.0/8`
+- Comments (lines starting with `#`)
+
+**Important**: Any IP or subnet that falls within a whitelisted CIDR block will be automatically excluded from blocking. For example, if you whitelist `10.0.0.0/8`, then `10.1.2.3/32` will never be blocked.
+
 ## Usage
 
 ### Manual Execution
@@ -92,6 +112,9 @@ python3 /config/scripts/generate_blocklist.py --verbose
 
 # Dry run with verbose output
 python3 /config/scripts/generate_blocklist.py --dry-run --verbose
+
+# Use custom whitelist file
+python3 /config/scripts/generate_blocklist.py --whitelist /path/to/my/whitelist.txt
 ```
 
 ### With Environment File
@@ -129,6 +152,7 @@ sudo chmod +x /config/scripts/update_blocklist.sh
 - `--dry-run`: Show what would be done without making changes
 - `--verbose`, `-v`: Enable verbose logging (debug level)
 - `--help`, `-h`: Show help message
+- `--whitelist`: Specify a custom whitelist file
 
 ## Logging
 
@@ -168,6 +192,10 @@ Log levels:
    - Check that the network group exists
    - Verify nftables service is running
 
+5. **Whitelist not working as expected**
+   - Check syntax of whitelist file
+   - Ensure IPs are not falling within whitelisted ranges
+
 ### Testing
 
 Always test with dry-run first:
@@ -189,6 +217,7 @@ sudo nft list set vyos_filter N_threats-blocklist
 ├── generate_blocklist.py    # Main script
 ├── blocklist.env           # Environment variables (optional)
 ├── update_blocklist.sh     # Cron wrapper script
+├── whitelist.txt.example    # Example whitelist file
 └── blocklist.log          # Log file
 ```
 
