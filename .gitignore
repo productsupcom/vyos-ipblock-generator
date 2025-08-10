@@ -1,1 +1,24 @@
 blocklist.log
+.pybuild
+.dist/
+
+# Debian package build artifacts
+debian/.debhelper/
+debian/vyos-ipblock/
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary files
+*.tmp
+*.temp
