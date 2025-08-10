@@ -1,4 +1,4 @@
-vyos-ipblock-generator (1.0.0-1) stable; urgency=medium
+vyos-ipblock (1.0.0-1) unstable; urgency=medium
 
   * Initial release
   * Support for Emerging Threats, Binary Defense, and AbuseIPDB feeds
