@@ -31,23 +31,21 @@ jobs:
         
         # Create whitelist.txt.example if it doesn't exist
         if [ ! -f whitelist.txt.example ]; then
-          cat > whitelist.txt.example << 'EOL'
-# VyOS IP Blocklist Whitelist Configuration
-#
-# This file contains IP addresses and CIDR blocks that should never be blocked.
-# Use this to protect your own networks, critical infrastructure, etc.
-
-# Internal company networks
-10.0.0.0/8
-192.168.0.0/16
-172.16.0.0/12
-
-# DNS servers
-8.8.8.8
-8.8.4.4
-1.1.1.1
-1.0.0.1
-EOL
+          echo "# VyOS IP Blocklist Whitelist Configuration" > whitelist.txt.example
+          echo "#" >> whitelist.txt.example
+          echo "# This file contains IP addresses and CIDR blocks that should never be blocked." >> whitelist.txt.example
+          echo "# Use this to protect your own networks, critical infrastructure, etc." >> whitelist.txt.example
+          echo "" >> whitelist.txt.example
+          echo "# Internal company networks" >> whitelist.txt.example
+          echo "10.0.0.0/8" >> whitelist.txt.example
+          echo "192.168.0.0/16" >> whitelist.txt.example
+          echo "172.16.0.0/12" >> whitelist.txt.example
+          echo "" >> whitelist.txt.example
+          echo "# DNS servers" >> whitelist.txt.example
+          echo "8.8.8.8" >> whitelist.txt.example
+          echo "8.8.4.4" >> whitelist.txt.example
+          echo "1.1.1.1" >> whitelist.txt.example
+          echo "1.0.0.1" >> whitelist.txt.example
         fi
         
         # Make debian/rules executable
@@ -126,4 +124,3 @@ EOL
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: `## 📦 Debian Package Built Successfully\n\n${packageInfo}\n\n✅ Package has been tested and is ready for deployment.\n\nDownload from the artifacts section above to test manually.`
-          });
