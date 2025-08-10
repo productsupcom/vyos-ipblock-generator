@@ -79,14 +79,12 @@ jobs:
         if [ -f debian/changelog ]; then
           # Create new changelog entry
           TIMESTAMP=$(date -R)
-          cat > debian/changelog.new << EOF
-vyos-ipblock ($VERSION-1) unstable; urgency=medium
-
-  * Automated build for version $VERSION
-
- -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  $TIMESTAMP
-
-EOF
+          echo "vyos-ipblock ($VERSION-1) unstable; urgency=medium" > debian/changelog.new
+          echo "" >> debian/changelog.new
+          echo "  * Automated build for version $VERSION" >> debian/changelog.new
+          echo "" >> debian/changelog.new
+          echo " -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  $TIMESTAMP" >> debian/changelog.new
+          echo "" >> debian/changelog.new
           if [ -s debian/changelog ]; then
             cat debian/changelog >> debian/changelog.new
           fi
