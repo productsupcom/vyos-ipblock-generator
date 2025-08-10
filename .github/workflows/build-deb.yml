@@ -149,28 +149,36 @@ jobs:
           vyos-ipblock_*.deb
           package-info.md
     
-    - name: Upload to release
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
+    - name: Create Release and Upload Assets
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+          package-info.md
+        body: |
+          ## VyOS IP Blocklist Generator v${{ steps.version.outputs.VERSION }}
+          
+          Professional IP blocklist generator for VyOS with comprehensive threat intelligence integration.
+          
+          ### 📦 Installation
+          ```bash
+          wget https://github.com/productsupcom/vyos-ipblock-generator/releases/download/${{ github.ref_name }}/vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+          sudo dpkg -i vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+          sudo apt-get install -f
+          ```
+          
+          ### 🚀 Quick Start
+          ```bash
+          vyos-ipblock --dry-run --verbose
+          vyos-ipblock
+          sudo systemctl enable --now vyos-ipblock.timer
+          ```
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
-        asset_name: vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
-        asset_content_type: application/vnd.debian.binary-package
-    
-    - name: Upload package info to release
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: package-info.md
-        asset_name: package-info.md
-        asset_content_type: text/markdown
-    
+
     - name: Comment PR with package info
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
