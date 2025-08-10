@@ -263,6 +263,27 @@ sudo chmod 755 /config/scripts/
 sudo chmod 600 /config/scripts/abuseipdb.key
 ```
 
+**Whitelist Not Working**
+```bash
+# Check whitelist file syntax
+vyos-ipblock --dry-run --verbose | grep -i whitelist
+
+# Verify whitelist entries are valid CIDR
+python3 -c "import ipaddress; print(ipaddress.IPv4Network('10.0.0.0/8'))"
+```
+
+**Service Issues**
+```bash
+# Check timer status
+sudo systemctl status vyos-ipblock.timer
+
+# View service logs
+sudo journalctl -u vyos-ipblock.service --since "1 hour ago"
+
+# Restart timer
+sudo systemctl restart vyos-ipblock.timer
+```
+
 ### Debug Mode
 
 For detailed troubleshooting:
@@ -270,9 +291,36 @@ For detailed troubleshooting:
 # Maximum verbosity
 vyos-ipblock --dry-run --verbose
 
-# Check logs
-tail -f /var/log/vyos-ipblock/blocklist.log
+# Check logs in real-time
+tail -f blocklist.log
+
+# Test individual components
+python3 -c "
+import generate_blocklist
+gen = generate_blocklist.BlocklistGenerator(dry_run=True, verbose=True)
+gen.fetch_emerging_threats()
+"
 ```
+
+### Error Messages
+
+**"No valid entries found from any source"**
+- Check internet connectivity
+- Verify threat feed URLs are accessible
+- Check firewall rules blocking outbound connections
+
+**"Invalid nftables rule file path"**
+- This is a security feature - the script only accepts files from temp directories
+- Don't manually specify nftables file paths
+
+**"ABUSEIPDB_API_KEY not available"**
+- This is just a warning - the script continues without AbuseIPDB
+- Add API key if you want AbuseIPDB data included
+
+**"Error flushing nftables set"**
+- Check if nftables set exists: `sudo nft list sets`
+- May need to create the set manually first
+- Verify sudo permissions for nft command
 
 ## 📈 Performance
 
