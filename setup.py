@@ -11,7 +11,7 @@ if os.path.exists('README.md'):
 
 setup(
     name='vyos-ipblock-generator',
-    version='1.0.0',
+    version='1.0.1',
     description='VyOS IP blocklist generator from threat intelligence sources',
     long_description=long_description,
     long_description_content_type='text/markdown',
