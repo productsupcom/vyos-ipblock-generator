@@ -1,0 +1,10 @@
+vyos-ipblock (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Support for Emerging Threats, Binary Defense, and AbuseIPDB feeds
+  * Whitelist functionality to protect own networks
+  * Comprehensive logging and dry-run mode
+  * Professional code structure with type hints
+  * GitHub Actions CI/CD pipeline
+
+ -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  Wed, 07 Aug 2024 12:00:00 +0000

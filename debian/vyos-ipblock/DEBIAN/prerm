@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        # Stop and disable the timer
+        systemctl stop vyos-ipblock.timer || true
+        systemctl disable vyos-ipblock.timer || true
+        ;;
+esac
+
+# Automatically added by dh_installsystemd/13.6ubuntu1
+if [ -z "${DPKG_ROOT:-}" ] && [ "$1" = remove ] && [ -d /run/systemd/system ] ; then
+	deb-systemd-invoke stop 'vyos-ipblock.service' 'vyos-ipblock.timer' >/dev/null || true
+fi
+# End automatically added section
+
+
+exit 0
