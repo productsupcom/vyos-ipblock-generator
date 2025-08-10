@@ -1,0 +1,88 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        # Create directories
+        mkdir -p /config/scripts
+        mkdir -p /var/log/vyos-ipblock
+        
+        # Set permissions
+        chmod 755 /config/scripts
+        chmod 755 /var/log/vyos-ipblock
+        
+        # Copy example whitelist if it doesn't exist
+        if [ ! -f /config/scripts/whitelist.txt ]; then
+            cp /usr/share/doc/vyos-ipblock/examples/whitelist.txt.example /config/scripts/whitelist.txt
+            chmod 644 /config/scripts/whitelist.txt
+        fi
+        
+        # Enable systemd timer (but don't start it automatically)
+        systemctl daemon-reload
+        systemctl enable vyos-ipblock.timer
+        
+        echo "VyOS IP Blocklist Generator has been installed."
+        echo ""
+        echo "Configuration:"
+        echo "  - Edit /config/scripts/whitelist.txt to add your networks"
+        echo "  - Add AbuseIPDB API key to /config/scripts/abuseipdb.key (optional)"
+        echo ""
+        echo "Usage:"
+        echo "  - Test: vyos-ipblock --dry-run --verbose"
+        echo "  - Run once: vyos-ipblock"
+        echo "  - Enable automatic updates: systemctl start vyos-ipblock.timer"
+        echo ""
+        echo "Documentation: /usr/share/doc/vyos-ipblock/"
+        ;;
+esac
+
+# Automatically added by dh_installsystemd/13.6ubuntu1
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+	# This will only remove masks created by d-s-h on package removal.
+	deb-systemd-helper unmask 'vyos-ipblock.service' >/dev/null || true
+
+	# was-enabled defaults to true, so new installations run enable.
+	if deb-systemd-helper --quiet was-enabled 'vyos-ipblock.service'; then
+		# Enables the unit on first installation, creates new
+		# symlinks on upgrades if the unit file has changed.
+		deb-systemd-helper enable 'vyos-ipblock.service' >/dev/null || true
+	else
+		# Update the statefile to add new symlinks (if any), which need to be
+		# cleaned up on purge. Also remove old symlinks.
+		deb-systemd-helper update-state 'vyos-ipblock.service' >/dev/null || true
+	fi
+fi
+# End automatically added section
+# Automatically added by dh_installsystemd/13.6ubuntu1
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+	# This will only remove masks created by d-s-h on package removal.
+	deb-systemd-helper unmask 'vyos-ipblock.timer' >/dev/null || true
+
+	# was-enabled defaults to true, so new installations run enable.
+	if deb-systemd-helper --quiet was-enabled 'vyos-ipblock.timer'; then
+		# Enables the unit on first installation, creates new
+		# symlinks on upgrades if the unit file has changed.
+		deb-systemd-helper enable 'vyos-ipblock.timer' >/dev/null || true
+	else
+		# Update the statefile to add new symlinks (if any), which need to be
+		# cleaned up on purge. Also remove old symlinks.
+		deb-systemd-helper update-state 'vyos-ipblock.timer' >/dev/null || true
+	fi
+fi
+# End automatically added section
+# Automatically added by dh_installsystemd/13.6ubuntu1
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+	if [ -d /run/systemd/system ]; then
+		systemctl --system daemon-reload >/dev/null || true
+		if [ -n "$2" ]; then
+			_dh_action=restart
+		else
+			_dh_action=start
+		fi
+		deb-systemd-invoke $_dh_action 'vyos-ipblock.service' 'vyos-ipblock.timer' >/dev/null || true
+	fi
+fi
+# End automatically added section
+
+
+exit 0

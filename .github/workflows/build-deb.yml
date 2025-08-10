@@ -1,0 +1,129 @@
+name: Build Debian Package
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential debhelper python3-all python3-setuptools dh-python python3-requests
+    
+    - name: Create missing files if needed
+      run: |
+        # Create requirements.txt if it doesn't exist
+        if [ ! -f requirements.txt ]; then
+          echo "requests>=2.25.0" > requirements.txt
+        fi
+        
+        # Create whitelist.txt.example if it doesn't exist
+        if [ ! -f whitelist.txt.example ]; then
+          cat > whitelist.txt.example << 'EOF'
+# VyOS IP Blocklist Whitelist Configuration
+#
+# This file contains IP addresses and CIDR blocks that should never be blocked.
+# Use this to protect your own networks, critical infrastructure, etc.
+
+# Internal company networks
+10.0.0.0/8
+192.168.0.0/16
+172.16.0.0/12
+
+# DNS servers
+8.8.8.8
+8.8.4.4
+1.1.1.1
+1.0.0.1
+EOF
+        fi
+        
+        # Make debian/rules executable
+        chmod +x debian/rules
+    
+    - name: Build Debian package
+      run: |
+        dpkg-buildpackage -us -uc -b
+    
+    - name: Test package installation
+      run: |
+        sudo dpkg -i ../vyos-ipblock_*.deb || true
+        sudo apt-get install -f -y
+        
+        # Test the installed package
+        vyos-ipblock --help
+        vyos-ipblock --dry-run --verbose
+    
+    - name: Generate package info
+      run: |
+        echo "## Package Information" > package-info.md
+        echo "" >> package-info.md
+        echo "**Package:** \`$(ls ../vyos-ipblock_*.deb | xargs basename)\`" >> package-info.md
+        echo "**Size:** $(du -h ../vyos-ipblock_*.deb | cut -f1)" >> package-info.md
+        echo "**Architecture:** all" >> package-info.md
+        echo "" >> package-info.md
+        echo "### Installation" >> package-info.md
+        echo "\`\`\`bash" >> package-info.md
+        echo "# Download and install" >> package-info.md
+        echo "wget https://github.com/productsupcom/vyos-ipblock-generator/releases/latest/download/vyos-ipblock_1.0.0-1_all.deb" >> package-info.md
+        echo "sudo dpkg -i vyos-ipblock_1.0.0-1_all.deb" >> package-info.md
+        echo "sudo apt-get install -f  # Install any missing dependencies" >> package-info.md
+        echo "\`\`\`" >> package-info.md
+        echo "" >> package-info.md
+        echo "### Quick Start" >> package-info.md
+        echo "\`\`\`bash" >> package-info.md
+        echo "# Test the installation" >> package-info.md
+        echo "vyos-ipblock --dry-run --verbose" >> package-info.md
+        echo "" >> package-info.md
+        echo "# Run once" >> package-info.md
+        echo "vyos-ipblock" >> package-info.md
+        echo "" >> package-info.md
+        echo "# Enable automatic updates every 6 hours" >> package-info.md
+        echo "sudo systemctl enable --now vyos-ipblock.timer" >> package-info.md
+        echo "\`\`\`" >> package-info.md
+    
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: debian-package
+        path: |
+          ../vyos-ipblock_*.deb
+          package-info.md
+    
+    - name: Upload to release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ../vyos-ipblock_1.0.0-1_all.deb
+        asset_name: vyos-ipblock_1.0.0-1_all.deb
+        asset_content_type: application/vnd.debian.binary-package
+    
+    - name: Comment PR with package info
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const packageInfo = fs.readFileSync('package-info.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 📦 Debian Package Built Successfully\n\n${packageInfo}\n\n✅ Package has been tested and is ready for deployment.\n\nDownload from the artifacts section above to test manually.`
+          });

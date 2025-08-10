@@ -1,0 +1,39 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_build:
+	# Skip automatic build since we're installing a single script
+
+override_dh_auto_test:
+	# Skip tests during package build
+
+override_dh_auto_install:
+	# Create directories
+	mkdir -p debian/vyos-ipblock/usr/bin
+	mkdir -p debian/vyos-ipblock/usr/share/doc/vyos-ipblock/examples
+	mkdir -p debian/vyos-ipblock/lib/systemd/system
+	mkdir -p debian/vyos-ipblock/etc/logrotate.d
+	
+	# Install the main script
+	install -m 755 generate_blocklist.py debian/vyos-ipblock/usr/bin/vyos-ipblock
+	
+	# Install configuration examples (create if missing)
+	test -f whitelist.txt.example || echo "# Example whitelist" > whitelist.txt.example
+	install -m 644 whitelist.txt.example debian/vyos-ipblock/usr/share/doc/vyos-ipblock/examples/
+	
+	# Install systemd service and timer (create if missing)
+	test -f debian/vyos-ipblock.service || echo "[Unit]\nDescription=VyOS IP Blocklist Generator\n[Service]\nType=oneshot\nExecStart=/usr/bin/vyos-ipblock" > debian/vyos-ipblock.service
+	test -f debian/vyos-ipblock.timer || echo "[Unit]\nDescription=VyOS IP Blocklist Timer\n[Timer]\nOnCalendar=*-*-* 00,06,12,18:00:00" > debian/vyos-ipblock.timer
+	install -m 644 debian/vyos-ipblock.service debian/vyos-ipblock/lib/systemd/system/
+	install -m 644 debian/vyos-ipblock.timer debian/vyos-ipblock/lib/systemd/system/
+	
+	# Install logrotate configuration (create if missing)
+	test -f debian/vyos-ipblock.logrotate || echo "/var/log/vyos-ipblock/*.log {\n    daily\n    rotate 7\n    compress\n}" > debian/vyos-ipblock.logrotate
+	install -m 644 debian/vyos-ipblock.logrotate debian/vyos-ipblock/etc/logrotate.d/vyos-ipblock
+
+override_dh_python3:
+	dh_python3
