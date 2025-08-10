@@ -111,6 +111,17 @@ jobs:
         asset_name: vyos-ipblock_1.0.0-1_all.deb
         asset_content_type: application/vnd.debian.binary-package
     
+    - name: Upload package info to release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: package-info.md
+        asset_name: package-info.md
+        asset_content_type: text/markdown
+    
     - name: Comment PR with package info
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
