@@ -136,12 +136,17 @@ jobs:
         echo "sudo systemctl enable --now vyos-ipblock.timer" >> package-info.md
         echo "\`\`\`" >> package-info.md
     
+    - name: Copy package to workspace
+      run: |
+        cp ../vyos-ipblock_*.deb ./
+        ls -la vyos-ipblock_*.deb
+
     - name: Upload package artifacts
       uses: actions/upload-artifact@v4
       with:
         name: debian-package-${{ steps.version.outputs.VERSION }}
         path: |
-          ../vyos-ipblock_*.deb
+          vyos-ipblock_*.deb
           package-info.md
     
     - name: Upload to release
@@ -151,7 +156,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ../vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+        asset_path: vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
         asset_name: vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
         asset_content_type: application/vnd.debian.binary-package
     
