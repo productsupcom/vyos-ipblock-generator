@@ -31,7 +31,7 @@ jobs:
         
         # Create whitelist.txt.example if it doesn't exist
         if [ ! -f whitelist.txt.example ]; then
-          cat > whitelist.txt.example << 'EOF'
+          cat > whitelist.txt.example << 'EOL'
 # VyOS IP Blocklist Whitelist Configuration
 #
 # This file contains IP addresses and CIDR blocks that should never be blocked.
@@ -47,7 +47,7 @@ jobs:
 8.8.4.4
 1.1.1.1
 1.0.0.1
-EOF
+EOL
         fi
         
         # Make debian/rules executable
