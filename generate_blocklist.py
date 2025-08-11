@@ -482,17 +482,65 @@ table ip {self.config.NFT_TABLE} {{
             self.logger.info(f"Created temporary nftables file: {temp_file.name}")
             return temp_file.name
     
+    def _ensure_nft_set_exists(self) -> None:
+        """Ensure the nftables set exists, create it if it doesn't."""
+        if self.dry_run:
+            self.logger.info("DRY RUN: Would ensure nftables set exists")
+            return
+        
+        self.logger.info("Checking if nftables set exists")
+        
+        # Check if the set exists
+        check_command = ["sudo", "nft", "list", "set", self.config.NFT_TABLE, self.config.NFT_SET]
+        try:
+            result = subprocess.run(
+                check_command, 
+                check=False,  # Don't fail if set doesn't exist
+                timeout=self.config.NFT_TIMEOUT, 
+                capture_output=True, 
+                text=True
+            )
+            
+            if result.returncode == 0:
+                self.logger.info(f"Set {self.config.NFT_SET} already exists")
+            else:
+                self.logger.info(f"Set {self.config.NFT_SET} does not exist, creating it")
+                # Create the set
+                create_command = [
+                    "sudo", "nft", "add", "set", "ip", self.config.NFT_TABLE, self.config.NFT_SET,
+                    "{ type ipv4_addr; flags interval; auto-merge; }"
+                ]
+                result = subprocess.run(
+                    create_command,
+                    check=True,
+                    timeout=self.config.NFT_TIMEOUT,
+                    capture_output=True,
+                    text=True
+                )
+                self.logger.info(f"Successfully created nftables set {self.config.NFT_SET}")
+                
+        except subprocess.CalledProcessError as e:
+            error_msg = f"Error managing nftables set: {e.stderr}"
+            self.logger.error(error_msg)
+            raise NFTConfigError(error_msg) from e
+        except subprocess.TimeoutExpired as e:
+            error_msg = "Timeout while managing nftables set"
+            self.logger.error(error_msg)
+            raise NFTConfigError(error_msg) from e
+
     def _flush_nft_set(self) -> None:
         """Flush the existing nftables set."""
         if self.dry_run:
             self.logger.info("DRY RUN: Would flush existing nftables set")
             return
         
+        # Ensure the set exists first
+        self._ensure_nft_set_exists()
+        
         self.logger.info("Flushing existing nftables set")
         try:
-            # Command is constructed from known safe values only
             command = ["sudo", "nft", "flush", "set", self.config.NFT_TABLE, self.config.NFT_SET]
-            result = subprocess.run(  # nosec B603 - controlled input, no shell
+            result = subprocess.run(
                 command, 
                 check=True, 
                 timeout=self.config.NFT_TIMEOUT, 
@@ -508,7 +556,7 @@ table ip {self.config.NFT_TABLE} {{
             error_msg = "Timeout while flushing nftables set"
             self.logger.error(error_msg)
             raise NFTConfigError(error_msg) from e
-    
+
     def _apply_nft_rule_file(self, filename: str) -> None:
         """
         Apply nftables rule file.
