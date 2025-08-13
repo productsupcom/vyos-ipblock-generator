@@ -105,19 +105,24 @@ jobs:
         ; Another comment
         203.0.113.5
         '''
-        filtered = generator._filter_lines(test_data)
-        assert len(filtered) == 3, f'Expected 3 valid IPs, got {len(filtered)}'
-        print(f'Line filtering test passed: {filtered}')
+        ipv4_filtered, ipv6_filtered = generator._filter_lines(test_data)
+        total_filtered = len(ipv4_filtered) + len(ipv6_filtered)
+        assert total_filtered == 3, f'Expected 3 valid IPs, got {total_filtered}'
+        print(f'Line filtering test passed: {ipv4_filtered}, {ipv6_filtered}')
         
         # Test CIDR conversion
-        cidr_list = generator._convert_to_cidr(filtered)
-        assert len(cidr_list) == 3, f'Expected 3 CIDR entries, got {len(cidr_list)}'
-        print(f'CIDR conversion test passed: {cidr_list}')
+        cidr_list_v4 = generator._convert_to_cidr_v4(ipv4_filtered)
+        cidr_list_v6 = generator._convert_to_cidr_v6(ipv6_filtered)
+        total_cidr = len(cidr_list_v4) + len(cidr_list_v6)
+        assert total_cidr == 3, f'Expected 3 CIDR entries, got {total_cidr}'
+        print(f'CIDR conversion test passed: {cidr_list_v4}, {cidr_list_v6}')
         
         # Test deduplication
-        deduplicated = generator._deduplicate_and_filter_list(cidr_list)
-        assert len(deduplicated) <= len(cidr_list), 'Deduplication should not increase count'
-        print(f'Deduplication test passed: {len(deduplicated)} entries')
+        deduplicated_v4 = generator._deduplicate_and_filter_list_v4(cidr_list_v4)
+        deduplicated_v6 = generator._deduplicate_and_filter_list_v6(cidr_list_v6)
+        total_deduplicated = len(deduplicated_v4) + len(deduplicated_v6)
+        assert total_deduplicated <= total_cidr, 'Deduplication should not increase count'
+        print(f'Deduplication test passed: {total_deduplicated} entries')
         "
 
   test-network-connectivity:
