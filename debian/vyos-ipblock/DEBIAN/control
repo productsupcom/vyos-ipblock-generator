@@ -2,7 +2,7 @@ Package: vyos-ipblock
 Version: 1.0.2
 Architecture: all
 Maintainer: VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>
-Installed-Size: 57
+Installed-Size: 59
 Depends: python3, python3-requests, sudo, nftables
 Recommends: cron
 Section: admin

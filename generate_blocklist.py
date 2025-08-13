@@ -157,7 +157,7 @@ class BlocklistGenerator:
             self.logger.error(error_msg)
             raise APIFetchError(error_msg) from e
 
-    def _is_valid_ip_or_cidr(self, line: str) -> tuple[bool, str]:
+    def _is_valid_ip_or_cidr(self, line: str) -> Tuple[bool, str]:
         """
         Validate if a line contains a valid IP address or CIDR block.
         
