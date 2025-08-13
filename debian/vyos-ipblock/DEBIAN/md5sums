@@ -1,5 +1,5 @@
 26ad2571558f5f25cfef83f89f9dacab  lib/systemd/system/vyos-ipblock.service
 667cec9053ad7f3a84d1bbb6130e8bb8  lib/systemd/system/vyos-ipblock.timer
-9b4c102cbbc09f98d5e249e7d89b7e90  usr/bin/vyos-ipblock
-91fdec845d00ad2bc2a75386bdc9eabf  usr/share/doc/vyos-ipblock/changelog.Debian.gz
+8ae1c2354f2a92ff97b909559f5960bc  usr/bin/vyos-ipblock
+3e55159de9489afefe4c863617227fa7  usr/share/doc/vyos-ipblock/changelog.gz
 e5e9e9085070e7be5d23c433ab6409a2  usr/share/doc/vyos-ipblock/examples/whitelist.txt.example

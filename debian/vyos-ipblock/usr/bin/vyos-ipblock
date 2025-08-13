@@ -15,7 +15,7 @@ import subprocess  # nosec B404 - subprocess usage is intentional and controlled
 import tempfile
 import time
 from pathlib import Path
-from typing import List, Optional, Set, Union
+from typing import List, Optional, Set, Union, Tuple
 import requests
 
 
@@ -80,7 +80,15 @@ class BlocklistGenerator:
         self._setup_logging(verbose)
         self.session = self._create_session()
         self.whitelist_file = whitelist_file
-        self.whitelist_ipv4, self.whitelist_ipv6 = self._load_whitelist(whitelist_file)
+        
+        # Explicitly type the attributes
+        self.whitelist_ipv4: List[ipaddress.IPv4Network]
+        self.whitelist_ipv6: List[ipaddress.IPv6Network]
+        
+        # Load whitelist and assign with explicit types
+        whitelist_result = self._load_whitelist(whitelist_file)
+        self.whitelist_ipv4 = whitelist_result[0]
+        self.whitelist_ipv6 = whitelist_result[1]
 
     def _setup_logging(self, verbose: bool) -> None:
         """Configure logging with appropriate level and handlers."""
@@ -148,74 +156,6 @@ class BlocklistGenerator:
             error_msg = f"Error fetching {url}: {e}"
             self.logger.error(error_msg)
             raise APIFetchError(error_msg) from e
-    
-    def fetch_emerging_threats(self) -> tuple[List[str], List[str]]:
-        """Fetch blocklist from Emerging Threats."""
-        self.logger.info("Fetching Emerging Threats blocklist")
-        try:
-            data = self._fetch_url(self.config.EMERGING_THREATS_URL)
-            ipv4_data, ipv6_data = self._filter_lines(data)
-            self.logger.info(f"Emerging Threats: {len(ipv4_data)} IPv4, {len(ipv6_data)} IPv6 valid entries found")
-            return ipv4_data, ipv6_data
-        except APIFetchError:
-            self.logger.warning("Failed to fetch Emerging Threats data, continuing without it")
-            return [], []
-
-    def fetch_binary_defense(self) -> tuple[List[str], List[str]]:
-        """Fetch blocklist from Binary Defense."""
-        self.logger.info("Fetching Binary Defense blocklist")
-        try:
-            data = self._fetch_url(self.config.BINARY_DEFENSE_URL)
-            ipv4_data, ipv6_data = self._filter_lines(data)
-            self.logger.info(f"Binary Defense: {len(ipv4_data)} IPv4, {len(ipv6_data)} IPv6 valid entries found")
-            return ipv4_data, ipv6_data
-        except APIFetchError:
-            self.logger.warning("Failed to fetch Binary Defense data, continuing without it")
-            return [], []
-
-    def fetch_abuseipdb(self) -> tuple[List[str], List[str]]:
-        """Fetch blocklist from AbuseIPDB."""
-        self.logger.info("Fetching AbuseIPDB blocklist")
-        
-        api_key = self._get_abuseipdb_key()
-        if not api_key:
-            self.logger.warning("ABUSEIPDB_API_KEY not available, skipping AbuseIPDB")
-            return [], []
-        
-        headers = {
-            'Key': api_key,
-            'Accept': 'text/plain'
-        }
-        params = {
-            'confidenceMinimum': self.config.ABUSEIPDB_CONFIDENCE_MINIMUM
-        }
-        
-        try:
-            data = self._fetch_url(self.config.ABUSEIPDB_URL, headers=headers, params=params)
-            ipv4_data, ipv6_data = self._filter_lines(data)
-            self.logger.info(f"AbuseIPDB: {len(ipv4_data)} IPv4, {len(ipv6_data)} IPv6 valid entries found")
-            return ipv4_data, ipv6_data
-        except APIFetchError:
-            self.logger.warning("Failed to fetch AbuseIPDB data, continuing without it")
-            return [], []
-
-    def _get_abuseipdb_key(self) -> Optional[str]:
-        """Get AbuseIPDB API key from environment or file."""
-        # Try environment variable first
-        api_key = os.getenv('ABUSEIPDB_API_KEY')
-        if api_key:
-            return api_key.strip()
-        
-        # Try key file - read only the first line to avoid issues with extra content
-        try:
-            with open(self.config.ABUSEIPDB_KEY_PATH, 'r') as f:
-                first_line = f.readline().strip()
-                if first_line:
-                    return first_line
-                return None
-        except (FileNotFoundError, PermissionError, OSError) as e:
-            self.logger.debug(f"Could not read API key file: {e}")
-            return None
 
     def _is_valid_ip_or_cidr(self, line: str) -> tuple[bool, str]:
         """
@@ -432,18 +372,22 @@ class BlocklistGenerator:
         self.logger.info(f"Removed {removed_count} redundant IPv6 entries, {len(filtered_list)} unique entries remaining")
         return filtered_list
 
-    def _load_whitelist(self, whitelist_file: Optional[str] = None) -> tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
+    def _load_whitelist(self, whitelist_file: Optional[str] = None) -> Tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
         """
         Load whitelist from configuration file.
         
         Returns:
             Tuple of (ipv4_networks, ipv6_networks)
         """
+        # Initialize empty lists for both IPv4 and IPv6
+        empty_ipv4: List[ipaddress.IPv4Network] = []
+        empty_ipv6: List[ipaddress.IPv6Network] = []
+        
         whitelist_path = Path(whitelist_file) if whitelist_file else self.config.WHITELIST_PATH
         
         if not whitelist_path.exists():
             self.logger.info(f"No whitelist file found at {whitelist_path}")
-            return [], []
+            return empty_ipv4, empty_ipv6
         
         try:
             self.logger.info(f"Loading whitelist from {whitelist_path}")
@@ -451,26 +395,26 @@ class BlocklistGenerator:
             
             if not content:
                 self.logger.info("Whitelist file is empty")
-                return [], []
+                return empty_ipv4, empty_ipv6
             
             ipv4_entries, ipv6_entries = self._filter_lines(content)
-            ipv4_networks = self._convert_to_cidr_v4(ipv4_entries)
-            ipv6_networks = self._convert_to_cidr_v6(ipv6_entries)
-            
+            ipv4_networks: List[ipaddress.IPv4Network] = self._convert_to_cidr_v4(ipv4_entries)
+            ipv6_networks: List[ipaddress.IPv6Network] = self._convert_to_cidr_v6(ipv6_entries)
+                
             self.logger.info(f"Loaded {len(ipv4_networks)} IPv4 and {len(ipv6_networks)} IPv6 whitelisted networks")
-            for network in ipv4_networks:
-                self.logger.debug(f"Whitelisted IPv4: {network}")
-            for network in ipv6_networks:
-                self.logger.debug(f"Whitelisted IPv6: {network}")
+            for ipv4_network in ipv4_networks:
+                self.logger.debug(f"Whitelisted IPv4: {ipv4_network}")
+            for ipv6_network in ipv6_networks:
+                self.logger.debug(f"Whitelisted IPv6: {ipv6_network}")
             
             return ipv4_networks, ipv6_networks
             
         except (OSError, PermissionError) as e:
             self.logger.warning(f"Could not read whitelist file {whitelist_path}: {e}")
-            return [], []
+            return empty_ipv4, empty_ipv6
         except Exception as e:
             self.logger.error(f"Error processing whitelist file {whitelist_path}: {e}")
-            return [], []
+            return empty_ipv4, empty_ipv6
 
     def _apply_whitelist_filter_v4(self, cidr_list: List[ipaddress.IPv4Network]) -> List[ipaddress.IPv4Network]:
         """Filter out whitelisted IPv4 networks from the blocklist."""
@@ -481,7 +425,7 @@ class BlocklistGenerator:
         self.logger.info(f"Applying IPv4 whitelist filter to {len(cidr_list)} entries")
         original_count = len(cidr_list)
         
-        filtered_list = []
+        filtered_list: List[ipaddress.IPv4Network] = []
         whitelisted_count = 0
         
         for network in cidr_list:
@@ -500,22 +444,31 @@ class BlocklistGenerator:
         if not self.whitelist_ipv6:
             self.logger.debug("No IPv6 whitelist configured, skipping IPv6 whitelist filtering")
             return cidr_list
-        
+
         self.logger.info(f"Applying IPv6 whitelist filter to {len(cidr_list)} entries")
         original_count = len(cidr_list)
-        
-        filtered_list = []
+
+        filtered_list: List[ipaddress.IPv6Network] = []
         whitelisted_count = 0
-        
+
         for network in cidr_list:
-            if any(network.subnet_of(whitelist_net) or network.supernet_of(whitelist_net) or network.overlaps(whitelist_net) 
-                   for whitelist_net in self.whitelist_ipv6):
+            if not isinstance(network, ipaddress.IPv6Network):
+                self.logger.warning(f"Non-IPv6Network found in IPv6 filter: {network!r}")
+                continue  # or raise Exception, depending on how strict you want to be
+            if any(
+                network.subnet_of(whitelist_net)
+                or network.supernet_of(whitelist_net)
+                or network.overlaps(whitelist_net)
+                for whitelist_net in self.whitelist_ipv6
+            ):
                 whitelisted_count += 1
                 self.logger.debug(f"Filtered out whitelisted IPv6 network: {network}")
             else:
                 filtered_list.append(network)
-        
-        self.logger.info(f"IPv6 whitelist filtering: removed {whitelisted_count} entries, {len(filtered_list)} entries remaining")
+
+        self.logger.info(
+            f"IPv6 whitelist filtering: removed {whitelisted_count} entries, {len(filtered_list)} entries remaining"
+        )
         return filtered_list
 
     def generate_blocklist(self) -> tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
@@ -526,8 +479,8 @@ class BlocklistGenerator:
             Tuple of (ipv4_networks, ipv6_networks)
         """
         self.logger.info("Starting blocklist generation")
-        ipv4_blocklist = []
-        ipv6_blocklist = []
+        ipv4_blocklist: List[str] = []
+        ipv6_blocklist: List[str] = []
         
         # Fetch from all sources
         sources = [

@@ -3,36 +3,67 @@ set -e
 
 case "$1" in
     configure)
-        # Create directories
+        echo "Configuring VyOS IP Blocklist Generator..."
+        
+        # Check if we're running on VyOS
+        if [ -f "/opt/vyatta/sbin/vyatta-cfg-cmd-wrapper" ]; then
+            echo "VyOS detected, configuring firewall groups..."
+            
+            # Create VyOS firewall groups automatically
+            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper begin
+            
+            # Create IPv4 network group
+            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group network-group threats-blocklist-ipv4 description 'IPv4 Threat Intelligence (auto-created)'
+            
+            # Create IPv6 network group
+            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group ipv6-network-group threats-blocklist-ipv6 description 'IPv6 Threat Intelligence (auto-created)'
+            
+            # Commit the changes
+            if /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper commit; then
+                echo "✓ VyOS firewall groups created successfully"
+            else
+                echo "⚠ Warning: Failed to commit VyOS configuration, groups may already exist"
+            fi
+            
+            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end
+            
+            echo ""
+            echo "VyOS firewall groups created! Next steps:"
+            echo "1. Configure firewall rules to use these groups:"
+            echo "   set firewall ipv4 forward filter rule 12 source group network-group 'threats-blocklist-ipv4'"
+            echo "   set firewall ipv6 forward filter rule 16 source group ipv6-network-group 'threats-blocklist-ipv6'"
+            echo "2. Run: vyos-ipblock --verbose"
+            echo "3. Run: /config/scripts/sync-vyos-threats.sh"
+            
+        else
+            echo "Non-VyOS system detected, skipping firewall group creation"
+        fi
+        
+        # Create directories for configuration files
         mkdir -p /config/scripts
         mkdir -p /var/log/vyos-ipblock
         
-        # Set permissions
+        # Set proper permissions
         chmod 755 /config/scripts
         chmod 755 /var/log/vyos-ipblock
         
-        # Copy example whitelist if it doesn't exist
-        if [ ! -f /config/scripts/whitelist.txt ]; then
-            cp /usr/share/doc/vyos-ipblock/examples/whitelist.txt.example /config/scripts/whitelist.txt
-            chmod 644 /config/scripts/whitelist.txt
-        fi
+        echo ""
+        echo "VyOS IP Blocklist Generator installed successfully!"
+        echo "Configuration files: /config/scripts/"
+        echo "Logs: /var/log/vyos-ipblock/"
+        echo ""
+        echo "Quick start:"
+        echo "1. Test: vyos-ipblock --dry-run --verbose"
+        echo "2. Run: vyos-ipblock --verbose"
+        echo "3. Enable automation: systemctl enable --now vyos-ipblock.timer"
+        ;;
         
-        # Enable systemd timer (but don't start it automatically)
-        systemctl daemon-reload
-        systemctl enable vyos-ipblock.timer
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
         
-        echo "VyOS IP Blocklist Generator has been installed."
-        echo ""
-        echo "Configuration:"
-        echo "  - Edit /config/scripts/whitelist.txt to add your networks"
-        echo "  - Add AbuseIPDB API key to /config/scripts/abuseipdb.key (optional)"
-        echo ""
-        echo "Usage:"
-        echo "  - Test: vyos-ipblock --dry-run --verbose"
-        echo "  - Run once: vyos-ipblock"
-        echo "  - Enable automatic updates: systemctl start vyos-ipblock.timer"
-        echo ""
-        echo "Documentation: /usr/share/doc/vyos-ipblock/"
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
         ;;
 esac
 

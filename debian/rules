@@ -13,7 +13,7 @@ override_dh_auto_install:
 	# Create directories
 	mkdir -p debian/vyos-ipblock/usr/bin
 	mkdir -p debian/vyos-ipblock/usr/share/doc/vyos-ipblock/examples
-	mkdir -p debian/vyos-ipblock/usr/lib/systemd/system
+	mkdir -p debian/vyos-ipblock/lib/systemd/system
 	mkdir -p debian/vyos-ipblock/etc/logrotate.d
 	
 	# Install the main script
@@ -26,8 +26,8 @@ override_dh_auto_install:
 	# Install systemd service and timer (create if missing)
 	test -f debian/vyos-ipblock.service || echo "[Unit]\nDescription=VyOS IP Blocklist Generator\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/vyos-ipblock\nUser=root\nStandardOutput=journal\nStandardError=journal" > debian/vyos-ipblock.service
 	test -f debian/vyos-ipblock.timer || echo "[Unit]\nDescription=VyOS IP Blocklist Timer\nRequires=vyos-ipblock.service\n\n[Timer]\nOnCalendar=*-*-* 00,06,12,18:00:00\nRandomizedDelaySec=300\nPersistent=true\n\n[Install]\nWantedBy=timers.target" > debian/vyos-ipblock.timer
-	install -m 644 debian/vyos-ipblock.service debian/vyos-ipblock/usr/lib/systemd/system/
-	install -m 644 debian/vyos-ipblock.timer debian/vyos-ipblock/usr/lib/systemd/system/
+	install -m 644 debian/vyos-ipblock.service debian/vyos-ipblock/lib/systemd/system/
+	install -m 644 debian/vyos-ipblock.timer debian/vyos-ipblock/lib/systemd/system/
 	
 	# Create and install logrotate configuration
 	echo '/var/log/vyos-ipblock/*.log {' > debian/vyos-ipblock.logrotate

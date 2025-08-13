@@ -1,12 +1,9 @@
 /var/log/vyos-ipblock/*.log {
     daily
-    missingok
     rotate 7
     compress
     delaycompress
+    missingok
     notifempty
-    create 644 root root
-    postrotate
-        systemctl reload-or-restart rsyslog > /dev/null 2>&1 || true
-    endscript
+    create 0644 root root
 }
