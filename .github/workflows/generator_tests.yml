@@ -247,12 +247,15 @@ jobs:
         192.168.1.1/99
         '''
         filtered = generator._filter_lines(invalid_data)
-        assert len(filtered) == 0, f'Expected 0 valid IPs from invalid data, got {len(filtered)}'
+        ipv4_filtered, ipv6_filtered = filtered
+        total_filtered = len(ipv4_filtered) + len(ipv6_filtered)
+        assert total_filtered == 0, f'Expected 0 valid IPs from invalid data, got {total_filtered}'
         print('Invalid IP filtering test passed')
         
         # Test empty data handling
-        empty_filtered = generator._filter_lines('')
-        assert len(empty_filtered) == 0, 'Empty data should return empty list'
+        empty_ipv4, empty_ipv6 = generator._filter_lines('')
+        total_empty = len(empty_ipv4) + len(empty_ipv6)
+        assert total_empty == 0, 'Empty data should return empty lists'
         print('Empty data handling test passed')
         
         # Test with unreachable URL (should be handled gracefully in dry-run)
@@ -264,7 +267,7 @@ jobs:
         
         # Test path validation in nft rule application
         try:
-            generator._apply_nft_rule_file('/etc/passwd')
+            generator._apply_nft_rule_file_dual('/etc/passwd')
             assert False, 'Should have raised NFTConfigError for invalid path'
         except generate_blocklist.NFTConfigError as e:
             if 'Invalid nftables rule file path' in str(e):
