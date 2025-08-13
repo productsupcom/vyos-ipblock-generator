@@ -1,13 +1,13 @@
 Package: vyos-ipblock
 Version: 1.0.0-1
 Architecture: all
-Maintainer: VyOS IP Blocklist Generator <maintainer@example.com>
-Installed-Size: 48
+Maintainer: VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>
+Installed-Size: 58
 Depends: python3, python3-requests, sudo, nftables
 Recommends: cron
 Section: admin
 Priority: optional
-Homepage: https://github.com/your-username/vyos-ipblock
+Homepage: https://github.com/productsupcom/vyos-ipblock-generator
 Description: VyOS IP blocklist generator from threat intelligence sources
  This package provides a tool to generate and apply IP blocklists to VyOS
  nftables from multiple threat intelligence sources including Emerging Threats,
