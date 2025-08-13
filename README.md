@@ -234,12 +234,6 @@ show firewall group network-group threats-blocklist-ipv4
 show firewall group ipv6-network-group threats-blocklist-ipv6
 ```
 
-#### Step 5: Automate the Sync Process
-
-```bash
-# Add to crontab to run 5 minutes after blocklist updates
-echo "5 */6 * * * /config/scripts/sync-vyos-threats.sh >> /var/log/vyos-threats-sync.log 2>&1" | sudo crontab -
-```
 
 ## Summary of Required Manual Steps
 
