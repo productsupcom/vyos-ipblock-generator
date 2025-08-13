@@ -1,7 +1,7 @@
 .PHONY: help build clean deb deb-docker install test detect-system
 
 PACKAGE_NAME = vyos-ipblock
-VERSION = 1.0.1
+VERSION = 1.0.2
 
 help:
 	@echo "Available targets:"

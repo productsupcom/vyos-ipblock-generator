@@ -5,7 +5,7 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A professional-grade IP blocklist generator for VyOS that automatically fetches, processes, and applies threat intelligence from multiple sources to your VyOS nftables firewall.
+A professional-grade IP blocklist generator for VyOS that automatically fetches, processes, and applies threat intelligence from multiple sources to your VyOS nftables firewall with full IPv4 and IPv6 support.
 
 ## ✨ Features
 
@@ -15,9 +15,10 @@ A professional-grade IP blocklist generator for VyOS that automatically fetches,
 - **AbuseIPDB**: Crowd-sourced IP abuse database
 - **Smart Deduplication**: Automatically removes redundant CIDR blocks
 - **CIDR Optimization**: Merges overlapping ranges for efficiency
+- **Dual-Stack Support**: Full IPv4 and IPv6 processing
 
 ### 🔒 Advanced Security
-- **Whitelist Protection**: Prevents blocking of your own networks
+- **Whitelist Protection**: Prevents blocking of your own networks (IPv4 and IPv6)
 - **Input Validation**: All IP addresses and CIDR blocks validated
 - **Path Security**: Protection against directory traversal attacks
 - **Secure API Handling**: Safe management of authentication tokens
@@ -31,6 +32,7 @@ A professional-grade IP blocklist generator for VyOS that automatically fetches,
 
 ### 🔧 VyOS Integration
 - **Native nftables**: Direct integration with VyOS firewall
+- **Dual-Stack nftables**: Separate IPv4 and IPv6 sets
 - **Complete Replacement**: Removes old entries, adds new ones
 - **Atomic Updates**: Safe application of blocklist changes
 - **Error Recovery**: Graceful handling of API and network failures
@@ -43,10 +45,10 @@ Download and install the pre-built `.deb` package:
 
 ```bash
 # Download the latest release
-wget https://github.com/productsupcom/vyos-ipblock-generator/releases/latest/download/vyos-ipblock_1.0.0-1_all.deb
+wget https://github.com/productsupcom/vyos-ipblock-generator/releases/latest/download/vyos-ipblock_1.0.1-1_all.deb
 
 # Install the package
-sudo dpkg -i vyos-ipblock_1.0.0-1_all.deb
+sudo dpkg -i vyos-ipblock_1.0.1-1_all.deb
 
 # Install any missing dependencies
 sudo apt-get install -f
@@ -70,7 +72,7 @@ chmod +x generate_blocklist.py
 
 ### Whitelist Configuration
 
-Protect your own networks from being blocked:
+Protect your own networks from being blocked (supports both IPv4 and IPv6):
 
 ```bash
 # Edit the whitelist file
@@ -79,21 +81,26 @@ sudo nano /config/scripts/whitelist.txt
 
 Example whitelist configuration:
 ```bash
-# Internal company networks
+# IPv4 Internal company networks
 10.0.0.0/8
 192.168.0.0/16
 172.16.0.0/12
 
-# Critical infrastructure
+# IPv4 Critical infrastructure
 203.0.113.0/24
 198.51.100.0/24
 
-# DNS servers
+# IPv4 DNS servers
 8.8.8.8
 8.8.4.4
+
+# IPv6 Networks
+2001:db8::/32
+fd00::/8
+2001:4860:4860::8888/128
 ```
 
-**Important**: Any IP or subnet that falls within a whitelisted CIDR block will be automatically excluded from blocking.
+**Important**: Any IP or subnet that falls within a whitelisted CIDR block will be automatically excluded from blocking. Both IPv4 and IPv6 networks are supported.
 
 ### AbuseIPDB API Key (Optional)
 
@@ -113,6 +120,23 @@ echo "your-api-key-here" | sudo tee /config/scripts/abuseipdb.key
 **Note**: The file should contain only the API key value, not `ABUSEIPDB_API_KEY=value` format.
 
 ## 🚀 Usage
+
+### First Run (Important!)
+
+After installation, you must run the script once to create the nftables sets:
+
+```bash
+# First, test the installation
+vyos-ipblock --dry-run --verbose
+
+# If the test looks good, run it for real to create the sets
+vyos-ipblock --verbose
+
+# Verify the sets were created
+sudo nft list sets | grep threats-blocklist
+```
+
+**Note**: The package installation only installs the files - the nftables sets are created when you first run the script.
 
 ### Basic Usage
 
@@ -152,245 +176,98 @@ echo "0 */6 * * * /usr/bin/vyos-ipblock" | sudo crontab -
 
 ### VyOS Integration
 
-The tool creates nftables rules compatible with VyOS. Use the generated set in your firewall rules:
+🎉 **Good news!** The .deb package automatically creates the VyOS firewall groups for you during installation. You just need to configure the firewall rules.
+
+#### Step 1: Install the Package (Groups Created Automatically)
+
+When you install the .deb package on VyOS, it automatically creates:
+- `threats-blocklist-ipv4` IPv4 network group
+- `threats-blocklist-ipv6` IPv6 network group
 
 ```bash
-# Example VyOS configuration
-set firewall name OUTSIDE_IN rule 10 action 'drop'
-set firewall name OUTSIDE_IN rule 10 source group address-group 'N_threats-blocklist'
-set firewall name OUTSIDE_IN rule 10 description 'Block threat intelligence IPs'
+# Install the package (groups are created automatically)
+sudo dpkg -i vyos-ipblock_1.0.1-1_all.deb
 ```
 
-## 📊 Monitoring & Logs
-
-### Log Files
-- **Main log**: `/var/log/vyos-ipblock/blocklist.log` (if installed via package)
-- **Current directory**: `blocklist.log` (if run manually)
-
-### Log Rotation
-The Debian package includes automatic log rotation:
-- Daily rotation
-- Keep 7 days of logs
-- Compress old logs
-
-### Monitoring Commands
-```bash
-# View recent activity
-sudo journalctl -u vyos-ipblock.service -f
-
-# Check service status
-sudo systemctl status vyos-ipblock.service
-
-# View current blocklist size
-sudo nft list set vyos_filter N_threats-blocklist | grep -c elements
-```
-
-## 🛠️ Development
-
-### Building from Source
+#### Step 2: Configure Firewall Rules to Use the Groups
 
 ```bash
-# Clone and build
-git clone https://github.com/productsupcom/vyos-ipblock-generator.git
-cd vyos-ipblock-generator
+configure
 
-# Build Debian package (requires Docker)
-make deb-docker
+# Create IPv4 rule using the auto-created network group
+set firewall ipv4 forward filter rule 12 action 'drop'
+set firewall ipv4 forward filter rule 12 description 'Drop IPv4 threat intelligence IPs'
+set firewall ipv4 forward filter rule 12 source group network-group 'threats-blocklist-ipv4'
 
-# Or build natively on Debian/Ubuntu
-make deb
+# Create IPv6 rule using the auto-created network group
+set firewall ipv6 forward filter rule 16 action 'drop'
+set firewall ipv6 forward filter rule 16 description 'Drop IPv6 threat intelligence IPs'
+set firewall ipv6 forward filter rule 16 source group ipv6-network-group 'threats-blocklist-ipv6'
+
+commit
+save
+exit
 ```
 
-### Testing
+#### Step 3: Run the Blocklist Generator
 
 ```bash
-# Run dry-run tests
-make test
+# Create the nftables sets and populate them with threat intelligence
+vyos-ipblock --verbose
 
-# Run the full test suite (requires Python test dependencies)
-python -m pytest tests/
-
-# Security scanning
-bandit -r generate_blocklist.py
+# Verify the sets were created
+sudo nft list sets | grep threats-blocklist
 ```
 
-### Code Quality
+#### Step 4: Install and Run the Sync Script
 
-The codebase follows professional standards:
-- **Type Hints**: Full type annotation coverage
-- **Docstrings**: Comprehensive documentation
-- **Error Handling**: Custom exceptions and proper recovery
-- **Security**: Bandit compliance and secure coding practices
-- **Testing**: Comprehensive test coverage with GitHub Actions
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-**Package Installation Issues**
 ```bash
-# Fix broken dependencies
-sudo apt-get install -f
+# Copy the sync script from examples
+sudo cp /usr/share/doc/vyos-ipblock/examples/sync-vyos-threats.sh /config/scripts/
+sudo chmod +x /config/scripts/sync-vyos-threats.sh
 
-# Reinstall package
-sudo dpkg --purge vyos-ipblock
-sudo dpkg -i vyos-ipblock_*.deb
+# Run the sync script to populate the groups
+/config/scripts/sync-vyos-threats.sh
+
+# Verify the groups are populated
+show firewall group network-group threats-blocklist-ipv4
+show firewall group ipv6-network-group threats-blocklist-ipv6
 ```
 
-**API Access Issues**
+
+## Summary of Required Manual Steps
+
+✅ **Automated by .deb package:**
+1. ~~Create VyOS network groups~~ (done automatically)
+2. ~~Install sync script~~ (provided in examples)
+
+🔧 **Manual steps required:**
+1. **Configure firewall rules** to reference the auto-created groups  
+2. **Run vyos-ipblock** to create and populate nftables sets
+3. **Install and run sync script** to populate VyOS groups from nftables sets
+4. **Set up automation** for ongoing synchronization
+
+**Much simpler now!** The .deb package handles the VyOS configuration automatically.
+
+## Complete Setup Verification
+
+Check that everything is working:
+
 ```bash
-# Test network connectivity
-curl -I https://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt
+# 1. Verify nftables sets exist and have data
+sudo nft list sets | grep threats-blocklist
+sudo nft list set ip vyos_filter N_threats-blocklist-ipv4 | grep elements
+sudo nft list set ip6 vyos_filter N6_threats-blocklist-ipv6 | grep elements
 
-# Verify AbuseIPDB key
-vyos-ipblock --dry-run --verbose | grep -i abuseipdb
+# 2. Check firewall rules are configured
+show firewall ipv4 forward filter rule 12
+show firewall ipv6 forward filter rule 16
+
+# 3. Monitor packet counters to see if blocking is working
+run show firewall ipv4 forward filter rule 12
+run show firewall ipv6 forward filter rule 16
+
+# 4. If using VyOS groups, verify they're populated
+show firewall group network-group threats-blocklist-ipv4
+show firewall group ipv6-network-group threats-blocklist-ipv6
 ```
-
-**VyOS Integration Issues**
-```bash
-# Check nftables set
-sudo nft list set vyos_filter N_threats-blocklist
-
-# Manual flush if needed
-sudo nft flush set vyos_filter N_threats-blocklist
-```
-
-**Permission Issues**
-```bash
-# Ensure proper permissions
-sudo chown root:root /config/scripts/
-sudo chmod 755 /config/scripts/
-sudo chmod 600 /config/scripts/abuseipdb.key
-```
-
-**Whitelist Not Working**
-```bash
-# Check whitelist file syntax
-vyos-ipblock --dry-run --verbose | grep -i whitelist
-
-# Verify whitelist entries are valid CIDR
-python3 -c "import ipaddress; print(ipaddress.IPv4Network('10.0.0.0/8'))"
-```
-
-**Service Issues**
-```bash
-# Check timer status
-sudo systemctl status vyos-ipblock.timer
-
-# View service logs
-sudo journalctl -u vyos-ipblock.service --since "1 hour ago"
-
-# Restart timer
-sudo systemctl restart vyos-ipblock.timer
-```
-
-### Debug Mode
-
-For detailed troubleshooting:
-```bash
-# Maximum verbosity
-vyos-ipblock --dry-run --verbose
-
-# Check logs in real-time
-tail -f blocklist.log
-
-# Test individual components
-python3 -c "
-import generate_blocklist
-gen = generate_blocklist.BlocklistGenerator(dry_run=True, verbose=True)
-gen.fetch_emerging_threats()
-"
-```
-
-### Error Messages
-
-**"No valid entries found from any source"**
-- Check internet connectivity
-- Verify threat feed URLs are accessible
-- Check firewall rules blocking outbound connections
-
-**"Invalid nftables rule file path"**
-- This is a security feature - the script only accepts files from temp directories
-- Don't manually specify nftables file paths
-
-**"ABUSEIPDB_API_KEY not available"**
-- This is just a warning - the script continues without AbuseIPDB
-- Add API key if you want AbuseIPDB data included
-
-**"Error flushing nftables set"**
-- Check if nftables set exists: `sudo nft list sets`
-- May need to create the set manually first
-- Verify sudo permissions for nft command
-
-## 📈 Performance
-
-### Resource Usage
-- **Memory**: ~10-50MB during execution
-- **CPU**: Brief spike during CIDR processing
-- **Network**: Only during threat feed downloads
-- **Disk**: ~2MB installed size, minimal log growth
-
-### Optimization
-- Automatic CIDR deduplication reduces nftables memory usage
-- Whitelist filtering happens after deduplication for efficiency
-- Network requests are optimized with proper timeouts
-- Log rotation prevents disk space issues
-
-## 🔐 Security Considerations
-
-### Data Sources
-- All threat intelligence sources are reputable and widely used
-- No sensitive data is transmitted (only receives public threat feeds)
-- API keys are handled securely with proper file permissions
-
-### Network Security
-- Whitelist protection prevents accidental blocking of critical infrastructure
-- Input validation ensures only valid IP addresses are processed
-- Path validation prevents directory traversal attacks
-
-### Operational Security
-- Dry-run mode allows safe testing
-- Comprehensive logging for audit trails
-- Graceful error handling prevents service disruption
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-```bash
-# Install development dependencies
-pip install -r requirements.txt
-pip install pytest mypy bandit safety
-
-# Run tests
-make test
-
-# Build package
-make deb-docker
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Emerging Threats** for community threat intelligence
-- **Binary Defense** for professional threat feeds  
-- **AbuseIPDB** for crowd-sourced abuse data
-- **VyOS Community** for the excellent routing platform
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/productsupcom/vyos-ipblock-generator/issues)
-- **Documentation**: This README and inline code documentation
-- **Security Issues**: Please report privately to the maintainers
-
----
-
-**Made with ❤️ for the VyOS community**
