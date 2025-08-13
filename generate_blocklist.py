@@ -80,6 +80,8 @@ class BlocklistGenerator:
         self._setup_logging(verbose)
         self.session = self._create_session()
         self.whitelist_file = whitelist_file
+        self.whitelist_ipv4: List[ipaddress.IPv4Network]
+        self.whitelist_ipv6: List[ipaddress.IPv6Network]
         self.whitelist_ipv4, self.whitelist_ipv6 = self._load_whitelist(whitelist_file)
 
     def _setup_logging(self, verbose: bool) -> None:
@@ -364,7 +366,7 @@ class BlocklistGenerator:
         self.logger.info(f"Removed {removed_count} redundant IPv6 entries, {len(filtered_list)} unique entries remaining")
         return filtered_list
 
-    def _load_whitelist(self, whitelist_file: Optional[str] = None) -> tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
+    def _load_whitelist(self, whitelist_file: Optional[str] = None):
         """
         Load whitelist from configuration file.
         
@@ -458,8 +460,8 @@ class BlocklistGenerator:
             Tuple of (ipv4_networks, ipv6_networks)
         """
         self.logger.info("Starting blocklist generation")
-        ipv4_blocklist = []
-        ipv6_blocklist = []
+        ipv4_blocklist: List[str] = []
+        ipv6_blocklist: List[str] = []
         
         # Fetch from all sources
         sources = [
