@@ -219,11 +219,62 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const fs = require('fs');
-          const packageInfo = fs.readFileSync('package-info.md', 'utf8');
+          console.log('Debug: Starting Comment PR with package info function');
+          console.log('Debug: github.event_name =', github.event_name);
+          console.log('Debug: context.payload.action =', context.payload.action);
           
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: `## 📦 Debian Package Built Successfully\n\n${packageInfo}\n\n✅ Package has been tested and is ready for deployment.\n\nDownload from the artifacts section above to test manually.`
+          // Debug context information
+          if (context.payload.pull_request) {
+            console.log('Debug: PR number from payload =', context.payload.pull_request.number);
+          }
+          if (context.issue) {
+            console.log('Debug: Issue number from context =', context.issue.number);
+          }
+          
+          // Check if package-info.md exists
+          const fs = require('fs');
+          if (!fs.existsSync('package-info.md')) {
+            console.error('Error: package-info.md file does not exist');
+            throw new Error('package-info.md file does not exist');
+          }
+          
+          console.log('Debug: Reading package-info.md file');
+          let packageInfo;
+          try {
+            packageInfo = fs.readFileSync('package-info.md', 'utf8');
+            console.log('Debug: Successfully read package-info.md file');
+          } catch (error) {
+            console.error('Error: Failed to read package-info.md file:', error.message);
+            throw error;
+          }
+          
+          // Determine PR number
+          let prNumber;
+          if (context.payload.pull_request) {
+            prNumber = context.payload.pull_request.number;
+          } else if (context.issue && context.issue.number) {
+            prNumber = context.issue.number;
+          } else {
+            console.error('Error: Could not determine PR number from context');
+            console.log('Debug: Full context object keys:', Object.keys(context));
+            throw new Error('Could not determine PR number from context');
+          }
+          
+          console.log('Debug: Using PR number:', prNumber);
+          
+          try {
+            console.log('Debug: Attempting to create comment on PR');
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📦 Debian Package Built Successfully\n\n${packageInfo}\n\n✅ Package has been tested and is ready for deployment.\n\nDownload from the artifacts section above to test manually.`
+            });
+            console.log('Debug: Successfully created comment on PR');
+          } catch (error) {
+            console.error('Error: Failed to create comment on PR:', error.message);
+            if (error.response) {
+              console.error('Error response data:', error.response.data);
+            }
+            throw error;
+          }
