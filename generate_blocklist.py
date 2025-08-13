@@ -413,7 +413,7 @@ class BlocklistGenerator:
         self.logger.info(f"Applying IPv4 whitelist filter to {len(cidr_list)} entries")
         original_count = len(cidr_list)
         
-        filtered_list = []
+        filtered_list: List[ipaddress.IPv4Network] = []
         whitelisted_count = 0
         
         for network in cidr_list:
@@ -436,7 +436,7 @@ class BlocklistGenerator:
         self.logger.info(f"Applying IPv6 whitelist filter to {len(cidr_list)} entries")
         original_count = len(cidr_list)
         
-        filtered_list = []
+        filtered_list: List[ipaddress.IPv6Network] = []
         whitelisted_count = 0
         
         for network in cidr_list:
