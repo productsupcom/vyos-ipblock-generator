@@ -166,13 +166,15 @@ class BlocklistGenerator:
         """
         try:
             if '/' in line:
+                # For CIDR blocks, use strict=True to validate prefix lengths
                 try:
-                    ipaddress.IPv4Network(line, strict=False)
+                    ipaddress.IPv4Network(line, strict=True)
                     return True, 'ipv4'
                 except ValueError:
-                    ipaddress.IPv6Network(line, strict=False)
+                    ipaddress.IPv6Network(line, strict=True)
                     return True, 'ipv6'
             else:
+                # For IP addresses, validate them directly
                 try:
                     ipaddress.IPv4Address(line)
                     return True, 'ipv4'
