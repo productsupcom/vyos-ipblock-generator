@@ -171,16 +171,22 @@ class BlocklistGenerator:
                     ipaddress.IPv4Network(line, strict=True)
                     return True, 'ipv4'
                 except ValueError:
-                    ipaddress.IPv6Network(line, strict=True)
-                    return True, 'ipv6'
+                    try:
+                        ipaddress.IPv6Network(line, strict=True)
+                        return True, 'ipv6'
+                    except ValueError:
+                        return False, ''
             else:
                 # For IP addresses, validate them directly
                 try:
                     ipaddress.IPv4Address(line)
                     return True, 'ipv4'
                 except ValueError:
-                    ipaddress.IPv6Address(line)
-                    return True, 'ipv6'
+                    try:
+                        ipaddress.IPv6Address(line)
+                        return True, 'ipv6'
+                    except ValueError:
+                        return False, ''
         except ValueError:
             return False, ''
     
