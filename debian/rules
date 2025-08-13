@@ -1,7 +1,5 @@
 #!/usr/bin/make -f
 
-export DH_VERBOSE=1
-
 %:
 	dh $@ --with python3 --buildsystem=pybuild
 
@@ -25,7 +23,7 @@ override_dh_auto_install:
 	test -f whitelist.txt.example || echo "# Example whitelist" > whitelist.txt.example
 	install -m 644 whitelist.txt.example debian/vyos-ipblock/usr/share/doc/vyos-ipblock/examples/
 	
-	# Create and install systemd service and timer files (ONLY to /lib/systemd/system)
+	# Create and install systemd service and timer files
 	echo '[Unit]' > debian/vyos-ipblock.service
 	echo 'Description=VyOS IP Blocklist Generator' >> debian/vyos-ipblock.service
 	echo 'After=network-online.target' >> debian/vyos-ipblock.service
@@ -50,7 +48,7 @@ override_dh_auto_install:
 	echo '[Install]' >> debian/vyos-ipblock.timer
 	echo 'WantedBy=timers.target' >> debian/vyos-ipblock.timer
 	
-	# Install systemd files to /lib/systemd/system ONLY
+	# Install systemd files
 	install -m 644 debian/vyos-ipblock.service debian/vyos-ipblock/lib/systemd/system/
 	install -m 644 debian/vyos-ipblock.timer debian/vyos-ipblock/lib/systemd/system/
 	
@@ -65,16 +63,6 @@ override_dh_auto_install:
 	echo '    create 0644 root root' >> debian/vyos-ipblock.logrotate
 	echo '}' >> debian/vyos-ipblock.logrotate
 	install -m 644 debian/vyos-ipblock.logrotate debian/vyos-ipblock/etc/logrotate.d/vyos-ipblock
-
-# Override systemd helpers to prevent automatic installation to /usr/lib/systemd/system
-override_dh_systemd_enable:
-	# Skip automatic systemd enablement
-
-override_dh_systemd_start:
-	# Skip automatic systemd start
-
-override_dh_installinit:
-	# Skip init script installation
 
 override_dh_python3:
 	dh_python3
