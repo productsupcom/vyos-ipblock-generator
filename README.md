@@ -176,46 +176,9 @@ echo "0 */6 * * * /usr/bin/vyos-ipblock" | sudo crontab -
 
 ### VyOS Integration
 
-The tool creates nftables sets that work directly with VyOS firewall rules. You can either use the nftables sets directly or create VyOS network groups for easier management.
+The tool creates nftables sets that need to be synchronized with VyOS network groups. You must manually create the VyOS network groups and firewall rules, then use the sync script to populate them.
 
-#### Option 1: Direct nftables Integration (Recommended)
-
-This is the simplest approach - your firewall rules reference the nftables sets directly:
-
-```bash
-configure
-
-# Create IPv4 firewall rule using nftables set directly
-set firewall ipv4 forward filter rule 12 action 'drop'
-set firewall ipv4 forward filter rule 12 description 'Drop IPv4 threat intelligence IPs'
-set firewall ipv4 forward filter rule 12 source address '!@vyos_filter,N_threats-blocklist-ipv4'
-
-# Create IPv6 firewall rule using nftables set directly
-set firewall ipv6 forward filter rule 16 action 'drop'
-set firewall ipv6 forward filter rule 16 description 'Drop IPv6 threat intelligence IPs'
-set firewall ipv6 forward filter rule 16 source address '!@vyos_filter,N6_threats-blocklist-ipv6'
-
-commit
-save
-exit
-```
-
-**That's it!** Run the blocklist generator and your rules will automatically use the threat intelligence:
-
-```bash
-# Create and populate the nftables sets
-vyos-ipblock --verbose
-
-# Check that blocking is working
-run show firewall ipv4 forward filter rule 12
-run show firewall ipv6 forward filter rule 16
-```
-
-#### Option 2: VyOS Network Groups (Advanced)
-
-If you prefer to use VyOS network groups for easier management:
-
-##### Step 1: Create VyOS Network Groups
+#### Step 1: Create VyOS Network Groups
 
 ```bash
 configure
@@ -230,7 +193,7 @@ commit
 save
 ```
 
-##### Step 2: Configure Firewall Rules to Use the Groups
+#### Step 2: Configure Firewall Rules to Use the Groups
 
 ```bash
 configure
@@ -250,7 +213,7 @@ save
 exit
 ```
 
-##### Step 3: Run the Blocklist Generator
+#### Step 3: Run the Blocklist Generator
 
 ```bash
 # Create the nftables sets and populate them with threat intelligence
@@ -260,7 +223,7 @@ vyos-ipblock --verbose
 sudo nft list sets | grep threats-blocklist
 ```
 
-##### Step 4: Create Sync Script to Populate VyOS Groups
+#### Step 4: Create Sync Script to Populate VyOS Groups (optional)
 
 ```bash
 # Create the sync script
@@ -325,7 +288,7 @@ EOF
 chmod +x /config/scripts/sync-vyos-threats.sh
 ```
 
-##### Step 5: Run the Sync Script and Automate
+#### Step 5: Run the Sync Script and Automate
 
 ```bash
 # Run the sync script manually
@@ -341,19 +304,13 @@ echo "5 */6 * * * /config/scripts/sync-vyos-threats.sh >> /var/log/vyos-threats-
 
 ## Summary of Required Manual Steps
 
-### Quick Setup (Option 1 - Direct nftables)
-1. **Create firewall rules** that reference the nftables sets directly
-2. **Run vyos-ipblock** to create and populate the sets
-3. **Done!** - Your rules automatically use the threat intelligence
-
-### Advanced Setup (Option 2 - VyOS Groups)  
 1. **Create VyOS network groups** (threats-blocklist-ipv4 and threats-blocklist-ipv6)
 2. **Configure firewall rules** to reference these groups  
 3. **Run vyos-ipblock** to create and populate nftables sets
 4. **Create and run sync script** to populate VyOS groups from nftables sets
 5. **Set up automation** for ongoing synchronization
 
-**Recommendation**: Use Option 1 (direct nftables) unless you need the VyOS groups for other purposes. It's simpler and more efficient.
+**Important**: The blocklist generator creates nftables sets, but VyOS firewall rules use network groups. The sync script bridges this gap by copying threat intelligence from nftables sets to VyOS groups.
 
 ## Complete Setup Verification
 
@@ -377,5 +334,3 @@ run show firewall ipv6 forward filter rule 16
 show firewall group network-group threats-blocklist-ipv4
 show firewall group ipv6-network-group threats-blocklist-ipv6
 ```
-
-# ...existing code...
