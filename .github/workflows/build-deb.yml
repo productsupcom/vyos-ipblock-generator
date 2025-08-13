@@ -97,16 +97,31 @@ jobs:
     
     - name: Test package installation
       run: |
+        # Create systemd directory if it doesn't exist (GitHub Actions issue)
+        sudo mkdir -p /usr/lib/systemd/system
+        
         # Install package with better error handling
         if ! sudo dpkg -i ../vyos-ipblock_*.deb; then
           echo "Package installation failed, checking details:"
           sudo dpkg --info ../vyos-ipblock_*.deb
           sudo dpkg --contents ../vyos-ipblock_*.deb
           
+          # Check if systemd directories exist
+          echo "Checking systemd directories:"
+          ls -la /lib/systemd/system/ || echo "/lib/systemd/system/ not found"
+          ls -la /usr/lib/systemd/system/ || echo "/usr/lib/systemd/system/ not found"
+          
           # Try to fix dependencies and install again
           sudo apt-get install -f -y
+          
+          # Create systemd directory again just in case
+          sudo mkdir -p /usr/lib/systemd/system
+          sudo mkdir -p /lib/systemd/system
+          
           sudo dpkg -i ../vyos-ipblock_*.deb || {
             echo "Second installation attempt failed"
+            echo "Checking package postinst script:"
+            sudo dpkg --contents ../vyos-ipblock_*.deb | grep -E "(postinst|prerm|postrm)"
             sudo journalctl -u vyos-ipblock.service --no-pager || true
             exit 1
           }

@@ -25,7 +25,7 @@ override_dh_auto_install:
 	test -f whitelist.txt.example || echo "# Example whitelist" > whitelist.txt.example
 	install -m 644 whitelist.txt.example debian/vyos-ipblock/usr/share/doc/vyos-ipblock/examples/
 	
-	# Create and install systemd service and timer files
+	# Create and install systemd service and timer files (ONLY to /lib/systemd/system)
 	echo '[Unit]' > debian/vyos-ipblock.service
 	echo 'Description=VyOS IP Blocklist Generator' >> debian/vyos-ipblock.service
 	echo 'After=network-online.target' >> debian/vyos-ipblock.service
@@ -50,7 +50,7 @@ override_dh_auto_install:
 	echo '[Install]' >> debian/vyos-ipblock.timer
 	echo 'WantedBy=timers.target' >> debian/vyos-ipblock.timer
 	
-	# Install systemd files
+	# Install systemd files to /lib/systemd/system ONLY
 	install -m 644 debian/vyos-ipblock.service debian/vyos-ipblock/lib/systemd/system/
 	install -m 644 debian/vyos-ipblock.timer debian/vyos-ipblock/lib/systemd/system/
 	
