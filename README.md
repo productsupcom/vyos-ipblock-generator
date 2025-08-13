@@ -176,21 +176,17 @@ echo "0 */6 * * * /usr/bin/vyos-ipblock" | sudo crontab -
 
 ### VyOS Integration
 
-The tool creates nftables sets that need to be synchronized with VyOS network groups. You must manually create the VyOS network groups and firewall rules, then use the sync script to populate them.
+🎉 **Good news!** The .deb package automatically creates the VyOS firewall groups for you during installation. You just need to configure the firewall rules.
 
-#### Step 1: Create VyOS Network Groups
+#### Step 1: Install the Package (Groups Created Automatically)
+
+When you install the .deb package on VyOS, it automatically creates:
+- `threats-blocklist-ipv4` IPv4 network group
+- `threats-blocklist-ipv6` IPv6 network group
 
 ```bash
-configure
-
-# Create IPv4 network group
-set firewall group network-group threats-blocklist-ipv4 description 'IPv4 Threat Intelligence'
-
-# Create IPv6 network group  
-set firewall group ipv6-network-group threats-blocklist-ipv6 description 'IPv6 Threat Intelligence'
-
-commit
-save
+# Install the package (groups are created automatically)
+sudo dpkg -i vyos-ipblock_1.0.1-1_all.deb
 ```
 
 #### Step 2: Configure Firewall Rules to Use the Groups
@@ -198,12 +194,12 @@ save
 ```bash
 configure
 
-# Create IPv4 rule using network group
+# Create IPv4 rule using the auto-created network group
 set firewall ipv4 forward filter rule 12 action 'drop'
 set firewall ipv4 forward filter rule 12 description 'Drop IPv4 threat intelligence IPs'
 set firewall ipv4 forward filter rule 12 source group network-group 'threats-blocklist-ipv4'
 
-# Create IPv6 rule using network group
+# Create IPv6 rule using the auto-created network group
 set firewall ipv6 forward filter rule 16 action 'drop'
 set firewall ipv6 forward filter rule 16 description 'Drop IPv6 threat intelligence IPs'
 set firewall ipv6 forward filter rule 16 source group ipv6-network-group 'threats-blocklist-ipv6'
@@ -223,94 +219,41 @@ vyos-ipblock --verbose
 sudo nft list sets | grep threats-blocklist
 ```
 
-#### Step 4: Create Sync Script to Populate VyOS Groups (optional)
+#### Step 4: Install and Run the Sync Script
 
 ```bash
-# Create the sync script
-cat > /config/scripts/sync-vyos-threats.sh << 'EOF'
-#!/bin/bash
+# Copy the sync script from examples
+sudo cp /usr/share/doc/vyos-ipblock/examples/sync-vyos-threats.sh /config/scripts/
+sudo chmod +x /config/scripts/sync-vyos-threats.sh
 
-echo "Syncing threat intelligence to VyOS network groups..."
-
-# Function to sync IPv4 threats
-sync_ipv4_threats() {
-    echo "Syncing IPv4 threats..."
-    
-    # Clear existing IPv4 group
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper begin
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper delete firewall group network-group threats-blocklist-ipv4 address 2>/dev/null || true
-    
-    # Get IPs from nftables set and add to VyOS group (limit to 1000 for performance)
-    sudo nft list set ip vyos_filter N_threats-blocklist-ipv4 2>/dev/null | \
-        grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?' | \
-        head -1000 | \
-        while read ip; do
-            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group network-group threats-blocklist-ipv4 address "$ip"
-        done
-    
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper commit
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end
-    
-    local count=$(sudo nft list set ip vyos_filter N_threats-blocklist-ipv4 2>/dev/null | grep -c elements || echo "0")
-    echo "IPv4 threats synced: $count entries"
-}
-
-# Function to sync IPv6 threats
-sync_ipv6_threats() {
-    echo "Syncing IPv6 threats..."
-    
-    # Clear existing IPv6 group
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper begin
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper delete firewall group ipv6-network-group threats-blocklist-ipv6 address 2>/dev/null || true
-    
-    # Get IPs from nftables set and add to VyOS group (limit to 1000 for performance)
-    sudo nft list set ip6 vyos_filter N6_threats-blocklist-ipv6 2>/dev/null | \
-        grep -oE '([0-9a-fA-F:]+:+)+[0-9a-fA-F]+(/[0-9]{1,3})?' | \
-        head -1000 | \
-        while read ip; do
-            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group ipv6-network-group threats-blocklist-ipv6 address "$ip"
-        done
-    
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper commit
-    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end
-    
-    local count=$(sudo nft list set ip6 vyos_filter N6_threats-blocklist-ipv6 2>/dev/null | grep -c elements || echo "0")
-    echo "IPv6 threats synced: $count entries"
-}
-
-# Run sync functions
-sync_ipv4_threats
-sync_ipv6_threats
-
-echo "Threat intelligence sync completed"
-EOF
-
-chmod +x /config/scripts/sync-vyos-threats.sh
-```
-
-#### Step 5: Run the Sync Script and Automate
-
-```bash
-# Run the sync script manually
+# Run the sync script to populate the groups
 /config/scripts/sync-vyos-threats.sh
 
 # Verify the groups are populated
 show firewall group network-group threats-blocklist-ipv4
 show firewall group ipv6-network-group threats-blocklist-ipv6
+```
 
+#### Step 5: Automate the Sync Process
+
+```bash
 # Add to crontab to run 5 minutes after blocklist updates
 echo "5 */6 * * * /config/scripts/sync-vyos-threats.sh >> /var/log/vyos-threats-sync.log 2>&1" | sudo crontab -
 ```
 
 ## Summary of Required Manual Steps
 
-1. **Create VyOS network groups** (threats-blocklist-ipv4 and threats-blocklist-ipv6)
-2. **Configure firewall rules** to reference these groups  
-3. **Run vyos-ipblock** to create and populate nftables sets
-4. **Create and run sync script** to populate VyOS groups from nftables sets
-5. **Set up automation** for ongoing synchronization
+✅ **Automated by .deb package:**
+1. ~~Create VyOS network groups~~ (done automatically)
+2. ~~Install sync script~~ (provided in examples)
 
-**Important**: The blocklist generator creates nftables sets, but VyOS firewall rules use network groups. The sync script bridges this gap by copying threat intelligence from nftables sets to VyOS groups.
+🔧 **Manual steps required:**
+1. **Configure firewall rules** to reference the auto-created groups  
+2. **Run vyos-ipblock** to create and populate nftables sets
+3. **Install and run sync script** to populate VyOS groups from nftables sets
+4. **Set up automation** for ongoing synchronization
+
+**Much simpler now!** The .deb package handles the VyOS configuration automatically.
 
 ## Complete Setup Verification
 
