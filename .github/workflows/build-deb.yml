@@ -97,8 +97,28 @@ jobs:
     
     - name: Test package installation
       run: |
-        sudo dpkg -i ../vyos-ipblock_*.deb || true
-        sudo apt-get install -f -y
+        # Install package with better error handling
+        if ! sudo dpkg -i ../vyos-ipblock_*.deb; then
+          echo "Package installation failed, checking details:"
+          sudo dpkg --info ../vyos-ipblock_*.deb
+          sudo dpkg --contents ../vyos-ipblock_*.deb
+          
+          # Try to fix dependencies and install again
+          sudo apt-get install -f -y
+          sudo dpkg -i ../vyos-ipblock_*.deb || {
+            echo "Second installation attempt failed"
+            sudo journalctl -u vyos-ipblock.service --no-pager || true
+            exit 1
+          }
+        fi
+        
+        # Verify installation
+        which vyos-ipblock || {
+          echo "vyos-ipblock command not found, checking installation:"
+          dpkg -L vyos-ipblock | head -20
+          ls -la /usr/bin/vyos-ipblock || echo "Script not found in /usr/bin/"
+          exit 1
+        }
         
         # Test the installed package
         vyos-ipblock --help
