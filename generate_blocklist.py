@@ -182,7 +182,7 @@ class BlocklistGenerator:
         except ValueError:
             return False, ''
     
-    def _filter_lines(self, data: str) -> tuple[List[str], List[str]]:
+    def _filter_lines(self, data: str) -> Tuple[List[str], List[str]]:
         """
         Filter and validate IP addresses and CIDR blocks from text data.
         
@@ -222,7 +222,7 @@ class BlocklistGenerator:
         
         return ipv4_lines, ipv6_lines
 
-    def fetch_emerging_threats(self) -> tuple[List[str], List[str]]:
+    def fetch_emerging_threats(self) -> Tuple[List[str], List[str]]:
         """Fetch blocklist from Emerging Threats."""
         self.logger.info("Fetching Emerging Threats blocklist")
         try:
@@ -234,7 +234,7 @@ class BlocklistGenerator:
             self.logger.warning("Failed to fetch Emerging Threats data, continuing without it")
             return [], []
 
-    def fetch_binary_defense(self) -> tuple[List[str], List[str]]:
+    def fetch_binary_defense(self) -> Tuple[List[str], List[str]]:
         """Fetch blocklist from Binary Defense."""
         self.logger.info("Fetching Binary Defense blocklist")
         try:
@@ -246,7 +246,7 @@ class BlocklistGenerator:
             self.logger.warning("Failed to fetch Binary Defense data, continuing without it")
             return [], []
 
-    def fetch_abuseipdb(self) -> tuple[List[str], List[str]]:
+    def fetch_abuseipdb(self) -> Tuple[List[str], List[str]]:
         """Fetch blocklist from AbuseIPDB."""
         self.logger.info("Fetching AbuseIPDB blocklist")
         
@@ -471,7 +471,7 @@ class BlocklistGenerator:
         )
         return filtered_list
 
-    def generate_blocklist(self) -> tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
+    def generate_blocklist(self) -> Tuple[List[ipaddress.IPv4Network], List[ipaddress.IPv6Network]]:
         """
         Generate the complete blocklist from all sources.
         
