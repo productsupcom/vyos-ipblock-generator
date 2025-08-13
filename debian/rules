@@ -66,5 +66,15 @@ override_dh_auto_install:
 	echo '}' >> debian/vyos-ipblock.logrotate
 	install -m 644 debian/vyos-ipblock.logrotate debian/vyos-ipblock/etc/logrotate.d/vyos-ipblock
 
+# Override systemd helpers to prevent automatic installation to /usr/lib/systemd/system
+override_dh_systemd_enable:
+	# Skip automatic systemd enablement
+
+override_dh_systemd_start:
+	# Skip automatic systemd start
+
+override_dh_installinit:
+	# Skip init script installation
+
 override_dh_python3:
 	dh_python3

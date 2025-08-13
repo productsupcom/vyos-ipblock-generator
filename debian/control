@@ -2,13 +2,13 @@ Source: vyos-ipblock
 Section: admin
 Priority: optional
 Maintainer: VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>
-Build-Depends: debhelper (>= 13), python3-all, dh-python
+Build-Depends: debhelper (>= 13), python3-all, dh-python, dh-systemd
 Standards-Version: 4.6.0
 Homepage: https://github.com/productsupcom/vyos-ipblock-generator
 
 Package: vyos-ipblock
 Architecture: all
-Depends: ${misc:Depends}, python3, python3-requests, sudo, nftables
+Depends: ${misc:Depends}, python3, python3-requests, sudo, nftables, systemd
 Recommends: cron
 Description: VyOS IP blocklist generator from threat intelligence sources
  This package provides a tool to generate and apply IP blocklists to VyOS
