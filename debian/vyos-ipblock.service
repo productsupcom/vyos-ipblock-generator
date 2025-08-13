@@ -1,0 +1,16 @@
+[Unit]
+Description=VyOS IP Blocklist Generator
+Documentation=file:///usr/share/doc/vyos-ipblock/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/vyos-ipblock
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+vyos-ipblock (1.0.2) stable; urgency=medium
+
+  * Added full IPv6 support with dual-stack processing
+  * Fixed IPv6 nftables set naming (N6_threats-blocklist-ipv6)
+  * Improved VyOS integration with network group sync scripts
+  * Enhanced documentation with troubleshooting and verification steps
+  * Added comprehensive debugging and monitoring commands
+  * Fixed systemd file installation paths
+  * Updated README with first-run instructions and manual setup steps
+  * Improved error handling for nftables set creation and management
+
+ -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  Tue, 13 Aug 2024 12:00:00 +0000
+
+vyos-ipblock (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Support for Emerging Threats, Binary Defense, and AbuseIPDB feeds
+  * Whitelist functionality to protect own networks
+  * Comprehensive logging and dry-run mode
+  * Professional code structure with type hints
+  * GitHub Actions CI/CD pipeline
+
+ -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  Wed, 07 Aug 2024 12:00:00 +0000

@@ -1,0 +1,34 @@
+# VyOS IP Blocklist Whitelist Configuration
+#
+# This file contains IP addresses and CIDR blocks that should never be blocked.
+# Use this to protect your own networks, critical infrastructure, etc.
+#
+# Format:
+# - One IP address or CIDR block per line
+# - Lines starting with # are comments
+# - Empty lines are ignored
+# - Both individual IPs and CIDR blocks are supported
+#
+# Examples:
+
+# Internal company networks
+10.0.0.0/8
+192.168.0.0/16
+172.16.0.0/12
+
+# Specific critical servers
+203.0.113.10
+203.0.113.20/30
+
+# Management networks
+198.51.100.0/24
+
+# Cloud provider ranges (example - adjust for your providers)
+# 52.94.0.0/16    # AWS example range
+# 13.104.0.0/14   # Azure example range
+
+# DNS servers
+8.8.8.8
+8.8.4.4
+1.1.1.1
+1.0.0.1

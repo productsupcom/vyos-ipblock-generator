@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        # Stop and disable the timer
+        systemctl stop vyos-ipblock.timer || true
+        systemctl disable vyos-ipblock.timer || true
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

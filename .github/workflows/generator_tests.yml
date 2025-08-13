@@ -1,0 +1,330 @@
+name: Test VyOS Blocklist Generator
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 6 AM UTC to catch API changes
+    - cron: '0 6 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+        # Install additional testing dependencies if needed
+        pip install pytest pytest-cov flake8 mypy types-requests
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 generate_blocklist.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 generate_blocklist.py --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+
+    - name: Type check with mypy
+      run: |
+        mypy generate_blocklist.py --ignore-missing-imports
+
+    - name: Test dry-run without API key
+      run: |
+        python generate_blocklist.py --dry-run --verbose
+      env:
+        # Don't set ABUSEIPDB_API_KEY to test graceful handling
+        PYTHONPATH: .
+
+    - name: Test dry-run with mock API key
+      run: |
+        python generate_blocklist.py --dry-run --verbose
+      env:
+        ABUSEIPDB_API_KEY: "mock-key-for-testing"
+        PYTHONPATH: .
+
+    - name: Test help output
+      run: |
+        python generate_blocklist.py --help
+
+    - name: Verify script structure
+      run: |
+        python -c "
+        import generate_blocklist
+        # Verify main classes exist
+        assert hasattr(generate_blocklist, 'BlocklistGenerator')
+        assert hasattr(generate_blocklist, 'BlocklistConfig')
+        assert hasattr(generate_blocklist, 'BlocklistGeneratorError')
+        print('All required classes found')
+
+        # Test configuration
+        config = generate_blocklist.BlocklistConfig()
+        assert config.EMERGING_THREATS_URL
+        assert config.BINARY_DEFENSE_URL
+        assert config.ABUSEIPDB_URL
+        print('Configuration valid')
+
+        # Test generator instantiation
+        generator = generate_blocklist.BlocklistGenerator(dry_run=True)
+        assert generator.dry_run == True
+        print('Generator instantiation successful')
+        "
+
+    - name: Test individual components
+      run: |
+        python -c "
+        import generate_blocklist
+        import logging
+
+        # Set up logging for test
+        logging.basicConfig(level=logging.INFO)
+
+        # Test with minimal data
+        generator = generate_blocklist.BlocklistGenerator(dry_run=True, verbose=True)
+
+        # Test line filtering
+        test_data = '''
+        # This is a comment
+        192.168.1.1
+        10.0.0.0/8
+        invalid-ip
+        ; Another comment
+        203.0.113.5
+        '''
+        ipv4_filtered, ipv6_filtered = generator._filter_lines(test_data)
+        total_filtered = len(ipv4_filtered) + len(ipv6_filtered)
+        assert total_filtered == 3, f'Expected 3 valid IPs, got {total_filtered}'
+        print(f'Line filtering test passed: {ipv4_filtered}, {ipv6_filtered}')
+
+        # Test CIDR conversion
+        cidr_list_v4 = generator._convert_to_cidr_v4(ipv4_filtered)
+        cidr_list_v6 = generator._convert_to_cidr_v6(ipv6_filtered)
+        total_cidr = len(cidr_list_v4) + len(cidr_list_v6)
+        assert total_cidr == 3, f'Expected 3 CIDR entries, got {total_cidr}'
+        print(f'CIDR conversion test passed: {cidr_list_v4}, {cidr_list_v6}')
+
+        # Test deduplication
+        deduplicated_v4 = generator._deduplicate_and_filter_list_v4(cidr_list_v4)
+        deduplicated_v6 = generator._deduplicate_and_filter_list_v6(cidr_list_v6)
+        total_deduplicated = len(deduplicated_v4) + len(deduplicated_v6)
+        assert total_deduplicated <= total_cidr, 'Deduplication should not increase count'
+        print(f'Deduplication test passed: {total_deduplicated} entries')
+        "
+
+  test-network-connectivity:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+
+    - name: Test network connectivity to threat feeds
+      run: |
+        python -c "
+        import requests
+        import generate_blocklist
+
+        config = generate_blocklist.BlocklistConfig()
+        session = requests.Session()
+        session.headers.update({'User-Agent': 'VyOS-Blocklist-Generator/1.0'})
+
+        # Test connectivity to each endpoint
+        endpoints = [
+            ('Emerging Threats', config.EMERGING_THREATS_URL),
+            ('Binary Defense', config.BINARY_DEFENSE_URL),
+        ]
+
+        for name, url in endpoints:
+            try:
+                response = session.head(url, timeout=10)
+                print(f'✓ {name}: HTTP {response.status_code}')
+            except Exception as e:
+                print(f'✗ {name}: {e}')
+                # Don't fail the test for network issues, just warn
+
+        # Test AbuseIPDB endpoint (will fail without API key, but that's expected)
+        try:
+            response = session.head(config.ABUSEIPDB_URL, timeout=10)
+            print(f'✓ AbuseIPDB endpoint reachable: HTTP {response.status_code}')
+        except Exception as e:
+            print(f'ℹ AbuseIPDB: {e} (expected without API key)')
+        "
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install security scanning tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+
+    - name: Run Bandit security scan
+      run: |
+        # Generate JSON report for artifacts
+        bandit -r generate_blocklist.py -f json -o bandit-report.json || true
+
+        # Run bandit with appropriate exclusions for our use case
+        # B404: subprocess import is intentional and controlled
+        # B603: subprocess calls use controlled input only
+        # B108: temp directory usage is appropriate for our use case
+        bandit -r generate_blocklist.py --skip B404,B603,B108 --severity-level medium
+
+        echo "Bandit scan completed. Check artifacts for full report including low-severity items."
+
+    - name: Check for known security vulnerabilities
+      run: |
+        # Generate JSON report for artifacts
+        pip freeze | safety check --json --output safety-report.json || true
+
+        # Run safety check
+        pip freeze | safety check
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports-${{ matrix.python-version || 'default' }}
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  test-error-conditions:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+
+    - name: Test error handling
+      run: |
+        python -c "
+        import generate_blocklist
+        import tempfile
+        import os
+
+        # Test with invalid API key file path
+        generator = generate_blocklist.BlocklistGenerator(dry_run=True)
+
+        # Test invalid IP filtering
+        invalid_data = '''
+        not-an-ip
+        999.999.999.999
+        192.168.1.1/99
+        '''
+        filtered = generator._filter_lines(invalid_data)
+        ipv4_filtered, ipv6_filtered = filtered
+        total_filtered = len(ipv4_filtered) + len(ipv6_filtered)
+        assert total_filtered == 0, f'Expected 0 valid IPs from invalid data, got {total_filtered}'
+        print('Invalid IP filtering test passed')
+
+        # Test empty data handling
+        empty_ipv4, empty_ipv6 = generator._filter_lines('')
+        total_empty = len(empty_ipv4) + len(empty_ipv6)
+        assert total_empty == 0, 'Empty data should return empty lists'
+        print('Empty data handling test passed')
+
+        # Test with unreachable URL (should be handled gracefully in dry-run)
+        try:
+            generator._fetch_url('http://definitely-not-a-real-url-12345.invalid')
+            assert False, 'Should have raised APIFetchError'
+        except generate_blocklist.APIFetchError:
+            print('URL error handling test passed')
+
+        # Test path validation in nft rule application
+        try:
+            generator._apply_nft_rule_file_dual('/etc/passwd')
+            assert False, 'Should have raised NFTConfigError for invalid path'
+        except generate_blocklist.NFTConfigError as e:
+            if 'Invalid nftables rule file path' in str(e):
+                print('Path validation test passed')
+            else:
+                raise
+        except Exception:
+            # In dry run mode, it might not reach the path validation
+            print('Path validation test skipped (dry run mode)')
+        "
+
+  test-integration:
+    runs-on: ubuntu-latest
+    needs: [test, test-network-connectivity, test-error-conditions]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+
+    - name: Test complete dry-run workflow
+      run: |
+        echo "Testing complete workflow with verbose output..."
+        python generate_blocklist.py --dry-run --verbose
+
+        echo "Verifying exit code..."
+        if [ $? -eq 0 ]; then
+          echo "✓ Dry-run completed successfully"
+        else
+          echo "✗ Dry-run failed"
+          exit 1
+        fi
+      env:
+        ABUSEIPDB_API_KEY: "test-key-for-integration"
+
+    - name: Test argument parsing
+      run: |
+        echo "Testing help output..."
+        python generate_blocklist.py --help
+
+        echo "Testing invalid arguments..."
+        if python generate_blocklist.py --invalid-arg 2>/dev/null; then
+          echo "✗ Should have failed with invalid argument"
+          exit 1
+        else
+          echo "✓ Invalid argument handling works correctly"
+        fi

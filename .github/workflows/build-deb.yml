@@ -1,0 +1,280 @@
+name: Build Debian Package
+
+on:
+  push:
+    branches: [ "*" ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for git describe
+
+    - name: Get version
+      id: version
+      run: |
+        # Try to get version from git tag, fallback to commit-based version
+        if git describe --tags --exact-match 2>/dev/null; then
+          VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+        elif git describe --tags 2>/dev/null; then
+          VERSION=$(git describe --tags | sed 's/^v//' | sed 's/-g[0-9a-f]*$//')
+        else
+          VERSION="1.0.2-dev.$(git rev-parse --short HEAD)"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "PACKAGE_NAME=vyos-ipblock_${VERSION}-1_all.deb" >> $GITHUB_OUTPUT
+        echo "Detected version: $VERSION"
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential debhelper python3-all python3-setuptools dh-python python3-requests
+
+    - name: Create missing files if needed
+      run: |
+        # Create requirements.txt if it doesn't exist
+        if [ ! -f requirements.txt ]; then
+          echo "requests>=2.25.0" > requirements.txt
+        fi
+
+        # Create whitelist.txt.example if it doesn't exist
+        if [ ! -f whitelist.txt.example ]; then
+          echo "# VyOS IP Blocklist Whitelist Configuration" > whitelist.txt.example
+          echo "#" >> whitelist.txt.example
+          echo "# This file contains IP addresses and CIDR blocks that should never be blocked." >> whitelist.txt.example
+          echo "# Use this to protect your own networks, critical infrastructure, etc." >> whitelist.txt.example
+          echo "" >> whitelist.txt.example
+          echo "# Internal company networks" >> whitelist.txt.example
+          echo "10.0.0.0/8" >> whitelist.txt.example
+          echo "192.168.0.0/16" >> whitelist.txt.example
+          echo "172.16.0.0/12" >> whitelist.txt.example
+          echo "" >> whitelist.txt.example
+          echo "# DNS servers" >> whitelist.txt.example
+          echo "8.8.8.8" >> whitelist.txt.example
+          echo "8.8.4.4" >> whitelist.txt.example
+          echo "1.1.1.1" >> whitelist.txt.example
+          echo "1.0.0.1" >> whitelist.txt.example
+        fi
+
+        # Make debian/rules executable
+        chmod +x debian/rules
+
+    - name: Update version in files
+      run: |
+        VERSION="${{ steps.version.outputs.VERSION }}"
+
+        # Update setup.py version
+        sed -i "s/version='[^']*'/version='$VERSION'/" setup.py
+
+        # Update debian/changelog if it exists
+        if [ -f debian/changelog ]; then
+          # Create new changelog entry
+          TIMESTAMP=$(date -R)
+          echo "vyos-ipblock ($VERSION-1) unstable; urgency=medium" > debian/changelog.new
+          echo "" >> debian/changelog.new
+          echo "  * Automated build for version $VERSION" >> debian/changelog.new
+          echo "" >> debian/changelog.new
+          echo " -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  $TIMESTAMP" >> debian/changelog.new
+          echo "" >> debian/changelog.new
+          if [ -s debian/changelog ]; then
+            cat debian/changelog >> debian/changelog.new
+          fi
+          mv debian/changelog.new debian/changelog
+        fi
+
+    - name: Build Debian package
+      run: |
+        dpkg-buildpackage -us -uc -b
+
+    - name: Test package installation
+      run: |
+        # Create systemd directory if it doesn't exist (GitHub Actions issue)
+        sudo mkdir -p /usr/lib/systemd/system
+
+        # Install package with better error handling
+        if ! sudo dpkg -i ../vyos-ipblock_*.deb; then
+          echo "Package installation failed, checking details:"
+          sudo dpkg --info ../vyos-ipblock_*.deb
+          sudo dpkg --contents ../vyos-ipblock_*.deb
+
+          # Check if systemd directories exist
+          echo "Checking systemd directories:"
+          ls -la /lib/systemd/system/ || echo "/lib/systemd/system/ not found"
+          ls -la /usr/lib/systemd/system/ || echo "/usr/lib/systemd/system/ not found"
+
+          # Try to fix dependencies and install again
+          sudo apt-get install -f -y
+
+          # Create systemd directory again just in case
+          sudo mkdir -p /usr/lib/systemd/system
+          sudo mkdir -p /lib/systemd/system
+
+          sudo dpkg -i ../vyos-ipblock_*.deb || {
+            echo "Second installation attempt failed"
+            echo "Checking package postinst script:"
+            sudo dpkg --contents ../vyos-ipblock_*.deb | grep -E "(postinst|prerm|postrm)"
+            sudo journalctl -u vyos-ipblock.service --no-pager || true
+            exit 1
+          }
+        fi
+
+        # Verify installation
+        which vyos-ipblock || {
+          echo "vyos-ipblock command not found, checking installation:"
+          dpkg -L vyos-ipblock | head -20
+          ls -la /usr/bin/vyos-ipblock || echo "Script not found in /usr/bin/"
+          exit 1
+        }
+
+        # Test the installed package
+        vyos-ipblock --help
+        vyos-ipblock --dry-run --verbose
+
+    - name: Generate package info
+      run: |
+        VERSION="${{ steps.version.outputs.VERSION }}"
+        PACKAGE_FILE="../vyos-ipblock_${VERSION}-1_all.deb"
+
+        echo "## Package Information" > package-info.md
+        echo "" >> package-info.md
+        echo "**Package:** \`vyos-ipblock_${VERSION}-1_all.deb\`" >> package-info.md
+        echo "**Version:** $VERSION" >> package-info.md
+        echo "**Size:** $(du -h $PACKAGE_FILE | cut -f1)" >> package-info.md
+        echo "**Architecture:** all" >> package-info.md
+        echo "" >> package-info.md
+        echo "### Installation" >> package-info.md
+        echo "\`\`\`bash" >> package-info.md
+        echo "# Download and install" >> package-info.md
+        echo "wget https://github.com/productsupcom/vyos-ipblock-generator/releases/latest/download/vyos-ipblock_${VERSION}-1_all.deb" >> package-info.md
+        echo "sudo dpkg -i vyos-ipblock_${VERSION}-1_all.deb" >> package-info.md
+        echo "sudo apt-get install -f  # Install any missing dependencies" >> package-info.md
+        echo "\`\`\`" >> package-info.md
+        echo "" >> package-info.md
+        echo "### Quick Start" >> package-info.md
+        echo "\`\`\`bash" >> package-info.md
+        echo "# Test the installation" >> package-info.md
+        echo "vyos-ipblock --dry-run --verbose" >> package-info.md
+        echo "" >> package-info.md
+        echo "# Run once" >> package-info.md
+        echo "vyos-ipblock" >> package-info.md
+        echo "" >> package-info.md
+        echo "# Enable automatic updates every 6 hours" >> package-info.md
+        echo "sudo systemctl enable --now vyos-ipblock.timer" >> package-info.md
+        echo "\`\`\`" >> package-info.md
+
+    - name: Copy package to workspace
+      run: |
+        cp ../vyos-ipblock_*.deb ./
+        ls -la vyos-ipblock_*.deb
+
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: debian-package-${{ steps.version.outputs.VERSION }}
+        path: |
+          vyos-ipblock_*.deb
+          package-info.md
+
+    - name: Create Release and Upload Assets
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+          package-info.md
+        body: |
+          ## VyOS IP Blocklist Generator v${{ steps.version.outputs.VERSION }}
+
+          Professional IP blocklist generator for VyOS with comprehensive threat intelligence integration.
+
+          ### 📦 Installation
+          ```bash
+          wget https://github.com/productsupcom/vyos-ipblock-generator/releases/download/${{ github.ref_name }}/vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+          sudo dpkg -i vyos-ipblock_${{ steps.version.outputs.VERSION }}-1_all.deb
+          sudo apt-get install -f
+          ```
+
+          ### 🚀 Quick Start
+          ```bash
+          vyos-ipblock --dry-run --verbose
+          vyos-ipblock
+          sudo systemctl enable --now vyos-ipblock.timer
+          ```
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Comment PR with package info
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          console.log('Debug: Starting Comment PR with package info function');
+          console.log('Debug: github.event_name =', github.event_name);
+          console.log('Debug: context.payload.action =', context.payload.action);
+
+          // Debug context information
+          if (context.payload.pull_request) {
+            console.log('Debug: PR number from payload =', context.payload.pull_request.number);
+          }
+          if (context.issue) {
+            console.log('Debug: Issue number from context =', context.issue.number);
+          }
+
+          // Check if package-info.md exists
+          const fs = require('fs');
+          if (!fs.existsSync('package-info.md')) {
+            console.error('Error: package-info.md file does not exist');
+            throw new Error('package-info.md file does not exist');
+          }
+
+          console.log('Debug: Reading package-info.md file');
+          let packageInfo;
+          try {
+            packageInfo = fs.readFileSync('package-info.md', 'utf8');
+            console.log('Debug: Successfully read package-info.md file');
+          } catch (error) {
+            console.error('Error: Failed to read package-info.md file:', error.message);
+            throw error;
+          }
+
+          // Determine PR number
+          let prNumber;
+          if (context.payload.pull_request) {
+            prNumber = context.payload.pull_request.number;
+          } else if (context.issue && context.issue.number) {
+            prNumber = context.issue.number;
+          } else {
+            console.error('Error: Could not determine PR number from context');
+            console.log('Debug: Full context object keys:', Object.keys(context));
+            throw new Error('Could not determine PR number from context');
+          }
+
+          console.log('Debug: Using PR number:', prNumber);
+
+          try {
+            console.log('Debug: Attempting to create comment on PR');
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📦 Debian Package Built Successfully\n\n${packageInfo}\n\n✅ Package has been tested and is ready for deployment.\n\nDownload from the artifacts section above to test manually.`
+            });
+            console.log('Debug: Successfully created comment on PR');
+          } catch (error) {
+            console.error('Error: Failed to create comment on PR:', error.message);
+            if (error.response) {
+              console.error('Error response data:', error.response.data);
+            }
+            throw error;
+          }
