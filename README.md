@@ -194,6 +194,10 @@ sudo dpkg -i vyos-ipblock_1.0.1-1_all.deb
 ```bash
 configure
 
+# Create the IPv4 and IPv6 groups:
+set firewall group network-group threats-blocklist-ipv4
+set firewall group ipv6-network-group threats-blocklist-ipv6
+
 # Create IPv4 rule using the auto-created network group
 set firewall ipv4 forward filter rule 12 action 'drop'
 set firewall ipv4 forward filter rule 12 description 'Drop IPv4 threat intelligence IPs'
@@ -242,10 +246,9 @@ show firewall group ipv6-network-group threats-blocklist-ipv6
 2. ~~Install sync script~~ (provided in examples)
 
 🔧 **Manual steps required:**
-1. **Configure firewall rules** to reference the auto-created groups
+1. **Configure firewall rules and groups** to reference the auto-created groups
 2. **Run vyos-ipblock** to create and populate nftables sets
-3. **Install and run sync script** to populate VyOS groups from nftables sets
-4. **Set up automation** for ongoing synchronization
+
 
 **Much simpler now!** The .deb package handles the VyOS configuration automatically.
 
