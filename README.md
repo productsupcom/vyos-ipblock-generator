@@ -221,21 +221,10 @@ vyos-ipblock --verbose
 
 # Verify the sets were created
 sudo nft list sets | grep threats-blocklist
-```
 
-#### Step 4: Install and Run the Sync Script
+# Verify the sets are active
+sudo nft list sets | grep 'threat' -A 5
 
-```bash
-# Copy the sync script from examples
-sudo cp /usr/share/doc/vyos-ipblock/examples/sync-vyos-threats.sh /config/scripts/
-sudo chmod +x /config/scripts/sync-vyos-threats.sh
-
-# Run the sync script to populate the groups
-/config/scripts/sync-vyos-threats.sh
-
-# Verify the groups are populated
-show firewall group network-group threats-blocklist-ipv4
-show firewall group ipv6-network-group threats-blocklist-ipv6
 ```
 
 
@@ -270,7 +259,4 @@ show firewall ipv6 forward filter rule 16
 run show firewall ipv4 forward filter rule 12
 run show firewall ipv6 forward filter rule 16
 
-# 4. If using VyOS groups, verify they're populated
-show firewall group network-group threats-blocklist-ipv4
-show firewall group ipv6-network-group threats-blocklist-ipv6
 ```
