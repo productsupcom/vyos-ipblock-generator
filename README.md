@@ -206,7 +206,7 @@ set firewall ipv4 forward filter rule 12 source group network-group 'threats-blo
 # Create IPv6 rule using the auto-created network group
 set firewall ipv6 forward filter rule 16 action 'drop'
 set firewall ipv6 forward filter rule 16 description 'Drop IPv6 threat intelligence IPs'
-set firewall ipv6 forward filter rule 16 source group ipv6-network-group 'threats-blocklist-ipv6'
+set firewall ipv6 forward filter rule 16 source group network-group 'threats-blocklist-ipv6'
 
 commit
 save
