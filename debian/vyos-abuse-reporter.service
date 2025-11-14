@@ -1,5 +1,5 @@
 [Unit]
-Description=VyOS IP Blocklist Generator
+Description=VyOS Abuse IP Reporter
 Documentation=file:///usr/share/doc/vyos-ipblock/README.md
 After=network-online.target
 Wants=network-online.target
@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=root
-ExecStart=/usr/bin/vyos-ipblock
+ExecStart=/usr/bin/vyos-abuse-reporter
 StandardOutput=journal
 StandardError=journal
 TimeoutStartSec=300

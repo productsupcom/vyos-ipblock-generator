@@ -6,10 +6,13 @@ check_firewall_group_exists() {
     local group_type="$1"
     local group_name="$2"
 
+    echo "Checking if $group_type '$group_name' exists..."
     # Use show command to check if group exists
-    if /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper show firewall group "$group_type" "$group_name" >/dev/null 2>&1; then
+    if /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper show firewall group "$group_type" "$group_name" < /dev/null >/dev/null 2>&1; then
+        echo "$group_type '$group_name' exists."
         return 0  # Group exists
     else
+        echo "$group_type '$group_name' does not exist."
         return 1  # Group does not exist
     fi
 }
@@ -26,14 +29,18 @@ case "$1" in
             changes_made=false
 
             # Create VyOS firewall groups automatically
-            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper begin
+            echo "Starting VyOS configuration session..."
+            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper begin < /dev/null
+            echo "VyOS configuration session started."
 
             # Check and create IPv4 network group if it doesn't exist
             if check_firewall_group_exists "network-group" "threats-blocklist-ipv4"; then
                 echo "IPv4 firewall group 'threats-blocklist-ipv4' already exists, skipping creation"
             else
                 echo "Creating IPv4 firewall group 'threats-blocklist-ipv4'"
-                /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group network-group threats-blocklist-ipv4 description 'IPv4 Threat Intelligence (auto-created)'
+                echo "Setting IPv4 group..."
+                /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group network-group threats-blocklist-ipv4 description 'IPv4 Threat Intelligence (auto-created)' < /dev/null
+                echo "IPv4 group set."
                 changes_made=true
             fi
 
@@ -42,25 +49,33 @@ case "$1" in
                 echo "IPv6 firewall group 'threats-blocklist-ipv6' already exists, skipping creation"
             else
                 echo "Creating IPv6 firewall group 'threats-blocklist-ipv6'"
-                /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group ipv6-network-group threats-blocklist-ipv6 description 'IPv6 Threat Intelligence (auto-created)'
+                echo "Setting IPv6 group..."
+                /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper set firewall group ipv6-network-group threats-blocklist-ipv6 description 'IPv6 Threat Intelligence (auto-created)' < /dev/null
+                echo "IPv6 group set."
                 changes_made=true
             fi
 
             # Commit the changes only if we made any
             if [ "$changes_made" = true ]; then
                 echo "Committing firewall group changes..."
-                if /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper commit; then
+                echo "Running commit..."
+                if /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper commit --yes < /dev/null; then
+                    echo "Commit successful."
                     echo "✓ VyOS firewall groups created successfully"
                 else
                     echo "⚠ Warning: Failed to commit VyOS configuration"
-                    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end
+                    echo "Ending session..."
+                    /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end < /dev/null
+                    echo "Session ended."
                     exit 1
                 fi
             else
                 echo "No changes needed for firewall groups"
             fi
 
-            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end
+            echo "Ending VyOS configuration session..."
+            /opt/vyatta/sbin/vyatta-cfg-cmd-wrapper end < /dev/null
+            echo "VyOS configuration session ended."
 
             echo ""
             echo "VyOS firewall groups created! Next steps:"
@@ -90,7 +105,15 @@ case "$1" in
         echo "Quick start:"
         echo "1. Test: vyos-ipblock --dry-run --verbose"
         echo "2. Run: vyos-ipblock --verbose"
-        echo "3. Enable automation: systemctl enable --now vyos-ipblock.timer"
+        echo "3. Enable automation: sudo systemctl enable --now vyos-ipblock.timer"
+        echo "4. Enable abuse reporting: sudo systemctl enable --now vyos-abuse-reporter.timer"
+
+        # Disable the abuse reporter timer by default to prevent automatic reporting
+        if command -v systemctl >/dev/null 2>&1; then
+            echo "Disabling vyos-abuse-reporter.timer by default..."
+            systemctl disable vyos-abuse-reporter.timer >/dev/null 2>&1 || true
+            echo "Abuse reporter timer disabled. Enable manually if desired."
+        fi
         ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

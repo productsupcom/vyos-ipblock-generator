@@ -1,5 +1,5 @@
 # Automatically added by dh_installsystemd/13.6ubuntu1
 if [ -z "${DPKG_ROOT:-}" ] && [ "$1" = remove ] && [ -d /run/systemd/system ] ; then
-	deb-systemd-invoke stop 'vyos-ipblock.service' 'vyos-ipblock.timer' >/dev/null || true
+	deb-systemd-invoke stop 'vyos-abuse-reporter.service' 'vyos-abuse-reporter.timer' 'vyos-ipblock.service' 'vyos-ipblock.timer' >/dev/null || true
 fi
 # End automatically added section

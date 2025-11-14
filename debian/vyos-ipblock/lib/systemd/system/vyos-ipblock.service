@@ -11,6 +11,3 @@ ExecStart=/usr/bin/vyos-ipblock
 StandardOutput=journal
 StandardError=journal
 TimeoutStartSec=300
-
-[Install]
-WantedBy=multi-user.target

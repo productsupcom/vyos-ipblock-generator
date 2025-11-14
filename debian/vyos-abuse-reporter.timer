@@ -1,0 +1,11 @@
+[Unit]
+Description=Run VyOS Abuse IP Reporter every hour
+Requires=vyos-abuse-reporter.service
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,3 +1,16 @@
+vyos-ipblock (1.0.3) stable; urgency=medium
+
+  * Added IP abuse reporting functionality (vyos-abuse-reporter)
+  * Monitor firewall logs and report blocked IPs to AbuseIPDB
+  * Configurable firewall rule monitoring with deduplication
+  * Integrated whitelist support for abuse reporting
+  * Added systemd service and timer for automated reporting
+  * Enhanced documentation with abuse reporting usage
+  * Improved log parsing with regex pattern matching
+  * Added rate limiting and error handling for API submissions
+
+ -- VyOS IP Blocklist Generator <wieger.bontekoe@productsup.com>  Wed, 13 Nov 2024 10:00:00 +0000
+
 vyos-ipblock (1.0.2) stable; urgency=medium
 
   * Added full IPv6 support with dual-stack processing

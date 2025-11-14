@@ -1,35 +1,35 @@
 # Automatically added by dh_installsystemd/13.6ubuntu1
 if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
-	# This will only remove masks created by d-s-h on package removal.
-	deb-systemd-helper unmask 'vyos-ipblock.service' >/dev/null || true
+	if deb-systemd-helper debian-installed 'vyos-abuse-reporter.timer'; then
+		# This will only remove masks created by d-s-h on package removal.
+		deb-systemd-helper unmask 'vyos-abuse-reporter.timer' >/dev/null || true
 
-	# was-enabled defaults to true, so new installations run enable.
-	if deb-systemd-helper --quiet was-enabled 'vyos-ipblock.service'; then
-		# Enables the unit on first installation, creates new
-		# symlinks on upgrades if the unit file has changed.
-		deb-systemd-helper enable 'vyos-ipblock.service' >/dev/null || true
-	else
-		# Update the statefile to add new symlinks (if any), which need to be
-		# cleaned up on purge. Also remove old symlinks.
-		deb-systemd-helper update-state 'vyos-ipblock.service' >/dev/null || true
+		if deb-systemd-helper --quiet was-enabled 'vyos-abuse-reporter.timer'; then
+			# Create new symlinks, if any.
+			deb-systemd-helper enable 'vyos-abuse-reporter.timer' >/dev/null || true
+		fi
 	fi
+
+	# Update the statefile to add new symlinks (if any), which need to be cleaned
+	# up on purge. Also remove old symlinks.
+	deb-systemd-helper update-state 'vyos-abuse-reporter.timer' >/dev/null || true
 fi
 # End automatically added section
 # Automatically added by dh_installsystemd/13.6ubuntu1
 if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
-	# This will only remove masks created by d-s-h on package removal.
-	deb-systemd-helper unmask 'vyos-ipblock.timer' >/dev/null || true
+	if deb-systemd-helper debian-installed 'vyos-ipblock.timer'; then
+		# This will only remove masks created by d-s-h on package removal.
+		deb-systemd-helper unmask 'vyos-ipblock.timer' >/dev/null || true
 
-	# was-enabled defaults to true, so new installations run enable.
-	if deb-systemd-helper --quiet was-enabled 'vyos-ipblock.timer'; then
-		# Enables the unit on first installation, creates new
-		# symlinks on upgrades if the unit file has changed.
-		deb-systemd-helper enable 'vyos-ipblock.timer' >/dev/null || true
-	else
-		# Update the statefile to add new symlinks (if any), which need to be
-		# cleaned up on purge. Also remove old symlinks.
-		deb-systemd-helper update-state 'vyos-ipblock.timer' >/dev/null || true
+		if deb-systemd-helper --quiet was-enabled 'vyos-ipblock.timer'; then
+			# Create new symlinks, if any.
+			deb-systemd-helper enable 'vyos-ipblock.timer' >/dev/null || true
+		fi
 	fi
+
+	# Update the statefile to add new symlinks (if any), which need to be cleaned
+	# up on purge. Also remove old symlinks.
+	deb-systemd-helper update-state 'vyos-ipblock.timer' >/dev/null || true
 fi
 # End automatically added section
 # Automatically added by dh_installsystemd/13.6ubuntu1
@@ -41,7 +41,7 @@ if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-decon
 		else
 			_dh_action=start
 		fi
-		deb-systemd-invoke $_dh_action 'vyos-ipblock.service' 'vyos-ipblock.timer' >/dev/null || true
+		deb-systemd-invoke $_dh_action 'vyos-abuse-reporter.service' 'vyos-abuse-reporter.timer' 'vyos-ipblock.service' 'vyos-ipblock.timer' >/dev/null || true
 	fi
 fi
 # End automatically added section

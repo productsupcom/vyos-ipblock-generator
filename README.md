@@ -37,6 +37,13 @@ A professional-grade IP blocklist generator for VyOS that automatically fetches,
 - **Atomic Updates**: Safe application of blocklist changes
 - **Error Recovery**: Graceful handling of API and network failures
 
+### 📢 Abuse Reporting
+- **Automatic IP Reporting**: Monitors firewall logs and reports blocked IPs to AbuseIPDB
+- **Configurable Rules**: Specify which firewall rule numbers to monitor
+- **Deduplication**: Avoids reporting the same IP multiple times
+- **Timestamp Accuracy**: Reports with precise timestamps from firewall logs
+- **Rate Limiting**: Respects API limits with built-in delays
+
 ## 📦 Installation
 
 ### Option 1: Debian Package (Recommended)
@@ -158,7 +165,7 @@ vyos-ipblock --verbose
 
 #### Systemd Timer (Recommended)
 ```bash
-# Enable automatic updates every 6 hours
+# Enable automatic blocklist updates every 6 hours
 sudo systemctl enable --now vyos-ipblock.timer
 
 # Check timer status
@@ -173,6 +180,63 @@ sudo journalctl -u vyos-ipblock.service
 # Add to crontab for updates every 6 hours
 echo "0 */6 * * * /usr/bin/vyos-ipblock" | sudo crontab -
 ```
+
+## 📢 Abuse IP Reporting
+
+The package includes a companion script that monitors your firewall logs and automatically reports blocked IP addresses back to AbuseIPDB, helping improve the global threat intelligence database.
+
+### Prerequisites
+
+1. **AbuseIPDB API Key**: Required for reporting functionality
+   ```bash
+   # Get a free API key from https://www.abuseipdb.com/
+   echo "your-api-key-here" | sudo tee /config/scripts/abuseipdb.key
+   chmod 600 /config/scripts/abuseipdb.key
+   ```
+
+### Basic Usage
+
+```bash
+# Report blocked IPs from the last 60 minutes
+sudo vyos-abuse-reporter
+
+# Dry run to see what would be reported
+sudo vyos-abuse-reporter --dry-run --verbose
+
+# Monitor specific firewall rules
+sudo vyos-abuse-reporter --rules 999 1000
+
+# Check a different time window
+sudo vyos-abuse-reporter --time-window 30
+```
+
+### Automation
+
+#### Systemd Timer (Recommended)
+```bash
+# Enable automatic reporting every hour
+sudo systemctl enable --now vyos-abuse-reporter.timer
+
+# Check timer status
+sudo systemctl status vyos-abuse-reporter.timer
+
+# View recent reports
+sudo journalctl -u vyos-abuse-reporter.service
+```
+
+### How It Works
+
+1. **Log Monitoring**: Parses `journalctl` output for firewall drop events
+2. **IP Extraction**: Extracts source IPs and timestamps from matching log entries
+3. **Deduplication**: Tracks reported IPs to avoid duplicate submissions
+4. **Whitelist Filtering**: Respects your existing whitelist configuration
+5. **API Submission**: Reports new IPs to AbuseIPDB with categories 14.18 (port scan/brute-force)
+
+### Configuration Files
+
+- **Reported IPs Cache**: `/config/scripts/reported_ips.json` - Tracks what's been reported
+- **API Key**: `/config/scripts/abuseipdb.key` - Your AbuseIPDB API key
+- **Whitelist**: `/config/scripts/whitelist.txt` - IPs/networks to never report
 
 ### VyOS Integration
 
